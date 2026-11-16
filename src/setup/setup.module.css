@@ -1,0 +1,102 @@
+.form {
+  display: grid;
+  gap: var(--space-6);
+  max-width: 46rem;
+}
+
+.form h1 {
+  font-size: var(--step-3);
+}
+
+.intro {
+  max-width: var(--measure);
+  color: var(--ink-soft);
+}
+
+.group {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--space-5);
+  border: 0;
+  border-radius: var(--radius-panel);
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.group legend {
+  float: left;
+  width: 100%;
+  margin-bottom: var(--space-2);
+  font-size: var(--step-1);
+  font-weight: 560;
+}
+
+.searchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: end;
+}
+
+.searchRow .field,
+.searchRow label {
+  flex: 1 1 14rem;
+}
+
+.results {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.choice,
+.check {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  min-height: 44px;
+}
+
+.choice input,
+.check input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.member {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-3);
+  align-items: end;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-4);
+  align-items: end;
+}
+
+.narrow {
+  max-width: 20rem;
+}
+
+.errors {
+  padding: var(--space-5);
+  border-radius: var(--radius-field);
+  border-left: 6px solid var(--aqi-unhealthy);
+  background: var(--raised);
+}
+
+.errors h2 {
+  font-size: var(--step-1);
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+}

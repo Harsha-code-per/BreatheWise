@@ -7,8 +7,8 @@ import { aqiBand } from './aqi.js';
 import type { AirHour, AirSnapshot, Profile } from './schemas.js';
 import { dayOf, hourOf } from './time.js';
 
-/** After this hour there is too little of the day left to plan, so the plan targets tomorrow. */
-export const LAST_PLANNING_HOUR = 20;
+/** From this hour on, too little of the day is left to plan, so the plan targets tomorrow. */
+export const LAST_PLANNING_HOUR = 18;
 
 /** First waking hour considered for outdoor plans. */
 export const FIRST_WAKING_HOUR = 6;

@@ -101,7 +101,9 @@ function commuteShift(ctx: PlanContext): Timed | null {
 function windowsShut(ctx: PlanContext): Timed | null {
   const [first, next] = trappedRuns(ctx.dayHours, ctx.fromHour);
   if (!first) return null;
-  const again = next ? ` It returns at ${formatHour(next.startHour)}, so shut up again then.` : '';
+  const again = next
+    ? ` It returns at ${formatHour(next.startHour)}, so close them again then.`
+    : '';
   return {
     id: 'windows-shut',
     kind: 'routine',

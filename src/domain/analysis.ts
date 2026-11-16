@@ -12,6 +12,7 @@ import { routineActions } from './routine.js';
 import type { AirHour, AirSnapshot, Profile } from './schemas.js';
 import { dailyOutlook, isSmog, type DayOutlook } from './smog.js';
 import { switchActions } from './switches.js';
+import { dayOf } from './time.js';
 
 /**
  * Weekly totals. Smoke avoided adds up across routine and indoor actions, which happen at
@@ -30,6 +31,7 @@ export interface Analysis {
   band: AqiBand;
   smogNow: boolean;
   planDate: string;
+  planIsTomorrow: boolean;
   outlook: DayOutlook[];
   sensitiveNames: string[];
   routine: Action[];
@@ -47,11 +49,12 @@ export function analyse(profile: Profile, air: AirSnapshot): Analysis {
   const switches = switchActions(ctx);
   const community = communityActions(ctx);
   return {
-    placeName: air.place.name,
+    placeName: air.place.name.split(',', 1).join(''),
     current: ctx.current,
     band: ctx.band,
     smogNow: isSmog(ctx.current),
     planDate: ctx.planDate,
+    planIsTomorrow: ctx.planDate !== dayOf(air.now),
     outlook: dailyOutlook(air.hours),
     sensitiveNames: ctx.sensitive.map((member) => member.name),
     routine,

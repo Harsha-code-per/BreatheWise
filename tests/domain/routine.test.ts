@@ -83,7 +83,7 @@ describe('routineActions edge cases', () => {
   });
 
   it('does not shift the commute for a small gain, and mentions no second inversion late in the day', () => {
-    const air = makeAir('2026-11-20T19:00');
+    const air = makeAir('2026-11-20T17:00');
     const flat = { ...air, hours: air.hours.map((hour) => ({ ...hour, pm25: 100 })) };
     const actions = routine(makeProfile(), flat);
     expect(byId(actions, 'commute-shift')).toBeUndefined();
