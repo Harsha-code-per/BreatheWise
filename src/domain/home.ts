@@ -13,7 +13,7 @@ import {
 } from './indoor.js';
 
 /** Hours a typical family member spends at home on a smoggy winter day. */
-export const HOURS_INDOORS = 20;
+const HOURS_INDOORS = 20;
 /** Share of cooking smoke a kitchen exhaust or chimney removes (range hoods capture 30–90%). */
 const EXHAUST_CAPTURE = 0.5;
 

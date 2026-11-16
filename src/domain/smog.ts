@@ -7,7 +7,7 @@ import type { AirHour } from './schemas.js';
 import { dayOf, hourOf } from './time.js';
 
 /** Mixing layers shallower than this (metres) are treated as an inversion that traps smoke. */
-export const INVERSION_BLH_M = 300;
+const INVERSION_BLH_M = 300;
 
 /** PM2.5 (µg/m³) at which the EPA scale reaches "Unhealthy" for everyone. */
 export const SMOG_PM25 = 55.5;

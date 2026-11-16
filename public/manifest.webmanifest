@@ -1,0 +1,14 @@
+{
+  "name": "BreatheWise",
+  "short_name": "BreatheWise",
+  "description": "Smog forecasts and a daily plan that cuts what your family breathes.",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#0e1626",
+  "theme_color": "#12203a",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

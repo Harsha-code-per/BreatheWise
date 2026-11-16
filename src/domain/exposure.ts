@@ -15,7 +15,7 @@ export type Effort = keyof typeof BREATHING;
  * Breathing 22 µg/m³ of PM2.5 for a day is comparable to smoking one cigarette
  * (Berkeley Earth, Muller & Muller 2015), so one cigarette ≈ 22 × 24 µg·h/m³.
  */
-export const CIGARETTE_UG_HOURS = 22 * 24;
+const CIGARETTE_UG_HOURS = 22 * 24;
 
 /** Relative inhaled PM2.5 dose for a stretch of time at a given effort. */
 export function inhaledDose(pm25: number, hours: number, effort: Effort): number {

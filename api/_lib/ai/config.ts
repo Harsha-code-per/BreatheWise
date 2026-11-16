@@ -9,9 +9,9 @@ import { compatibleProvider } from './openai-compatible.js';
 import type { Provider } from './provider.js';
 
 /** Each provider gets this long before the cascade moves on. */
-export const PROVIDER_TIMEOUT_MS = 10_000;
+const PROVIDER_TIMEOUT_MS = 10_000;
 /** All providers together get this long, leaving headroom inside the 30 s function limit. */
-export const CASCADE_TOTAL_MS = 20_000;
+const CASCADE_TOTAL_MS = 20_000;
 
 const optional = z.preprocess((value) => (value === '' ? undefined : value), z.string().optional());
 

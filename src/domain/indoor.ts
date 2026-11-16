@@ -7,7 +7,7 @@
 import type { CookingFuel } from './schemas.js';
 
 /** Typical ceiling height used to turn floor area into room volume, metres. */
-export const ROOM_HEIGHT_M = 2.7;
+const ROOM_HEIGHT_M = 2.7;
 
 /** Mass-balance constants for a home with windows shut in winter. */
 export const HOME_AIR = {
@@ -18,7 +18,7 @@ export const HOME_AIR = {
 } as const;
 
 /** Purifiers are sized for about five clean-air changes an hour in the room they serve. */
-export const TARGET_CLEAN_ACH = 5;
+const TARGET_CLEAN_ACH = 5;
 
 /**
  * A DIY Corsi–Rosenthal box (box fan + four MERV-13 filters) delivers roughly 600 cfm,

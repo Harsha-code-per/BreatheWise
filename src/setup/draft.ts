@@ -45,8 +45,8 @@ export function checkDraft(draft: Draft): { profile: Profile } | { errors: strin
   if (parsed.success) return { profile: parsed.data };
   const errors = parsed.error.issues.map((issue) => {
     const [section] = issue.path;
-    const name = FIELD_NAMES[String(section)] ?? 'A field';
-    return issue.path.includes('name')
+    const name = FIELD_NAMES[String(section)] ?? 'Your answers';
+    return section === 'members' && issue.path.includes('name')
       ? `${name}: give every family member a name.`
       : `${name}: check the ${String(issue.path.at(-1))} value.`;
   });

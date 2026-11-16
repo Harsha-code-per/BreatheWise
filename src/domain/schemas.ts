@@ -20,13 +20,13 @@ export const LANGUAGES = ['en', 'hi', 'bn', 'mr', 'ta'] as const;
 
 const hourSchema = z.number().int().min(0).max(23);
 
-export const placeSchema = z.object({
+const placeSchema = z.object({
   name: z.string().trim().min(1).max(80),
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
 });
 
-export const memberSchema = z.object({
+const memberSchema = z.object({
   id: z.string().regex(/^[a-z0-9-]{1,24}$/),
   name: z.string().trim().min(1).max(40),
   group: z.enum(MEMBER_GROUPS),
@@ -54,7 +54,7 @@ export const profileSchema = z.object({
   language: z.enum(LANGUAGES),
 });
 
-export const airHourSchema = z.object({
+const airHourSchema = z.object({
   time: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
   aqi: z.number().min(0),
   pm25: z.number().min(0),

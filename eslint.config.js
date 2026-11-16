@@ -49,6 +49,8 @@ export default tseslint.config(
     files: ['tests/**', 'e2e/**', 'scripts/**', '*.config.{js,ts}'],
     rules: {
       'max-lines': 'off',
+      'max-params': 'off',
+      'no-console': 'off',
       // Test matchers such as expect.any() are typed `any` by Vitest.
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',

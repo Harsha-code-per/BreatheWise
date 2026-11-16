@@ -28,15 +28,15 @@ function noBurning(): Action {
 }
 
 function schoolRun(ctx: PlanContext): Action | null {
-  const window = cleanestWindow(ctx.dayHours, { date: ctx.planDate, length: 1, ...SCHOOL_RUN });
-  if (!window || !ctx.profile.members.some((member) => member.group === 'child')) return null;
+  const slot = cleanestWindow(ctx.dayHours, { date: ctx.planDate, length: 1, ...SCHOOL_RUN });
+  if (!slot || !ctx.profile.members.some((member) => member.group === 'child')) return null;
   return {
     id: 'walking-bus',
     kind: 'community',
-    title: `Start a walking school bus at ${formatHour(window.startHour)}`,
+    title: `Start a walking school bus at ${formatHour(slot.startHour)}`,
     detail:
       'Parents take turns walking children to school together on quieter streets, at the cleanest morning hour, which also takes cars off the road.',
-    when: formatHour(window.startHour),
+    when: formatHour(slot.startHour),
     impact: NO_IMPACT,
   };
 }

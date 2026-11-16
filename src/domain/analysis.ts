@@ -18,7 +18,7 @@ import { dayOf } from './time.js';
  * Weekly totals. Smoke avoided adds up across routine and indoor actions, which happen at
  * different times; CO₂ is the single best switch, because commute options are alternatives.
  */
-export interface Totals {
+interface Totals {
   bestCo2KgWeek: number;
   cigarettesWeek: number;
   topExposureCut: number;

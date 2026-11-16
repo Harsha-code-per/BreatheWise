@@ -26,8 +26,8 @@ export function routineActions(ctx: PlanContext): Action[] {
     .sort((a, b) => a.when.localeCompare(b.when));
 }
 
-function span(window: AirWindow): string {
-  return `${formatHour(window.startHour)}–${formatHour(window.endHour)}`;
+function span(slot: AirWindow): string {
+  return `${formatHour(slot.startHour)}–${formatHour(slot.endHour)}`;
 }
 
 function query(ctx: PlanContext, length: number) {

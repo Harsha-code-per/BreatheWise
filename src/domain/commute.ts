@@ -17,7 +17,7 @@ export const CO2_PER_KM: Readonly<Record<CommuteMode, number>> = {
 };
 
 /** Typical door-to-door urban speeds, km/h, including waiting and walking to stops. */
-export const SPEED_KMH: Readonly<Record<CommuteMode, number>> = {
+const SPEED_KMH: Readonly<Record<CommuteMode, number>> = {
   car: 22,
   carpool: 20,
   motorbike: 25,
@@ -28,7 +28,7 @@ export const SPEED_KMH: Readonly<Record<CommuteMode, number>> = {
 };
 
 /** How hard each mode makes you breathe. */
-export const MODE_EFFORT: Readonly<Record<CommuteMode, Effort>> = {
+const MODE_EFFORT: Readonly<Record<CommuteMode, Effort>> = {
   car: 'rest',
   carpool: 'rest',
   motorbike: 'rest',

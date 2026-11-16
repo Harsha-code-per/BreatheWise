@@ -11,7 +11,7 @@ import type { CommuteMode, HeatingType } from './schemas.js';
 const MAX_COMMUTE_OPTIONS = 2;
 
 /** Human labels for each way of commuting. */
-export const MODE_LABELS: Readonly<Record<CommuteMode, string>> = {
+const MODE_LABELS: Readonly<Record<CommuteMode, string>> = {
   car: 'driving alone',
   carpool: 'carpooling',
   motorbike: 'riding a motorbike',

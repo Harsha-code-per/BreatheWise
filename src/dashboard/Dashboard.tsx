@@ -1,7 +1,7 @@
 import { type ReactElement, useState, type MouseEvent } from 'react';
 import { navigate } from '../app/navigation.js';
 import type { Profile } from '../domain/schemas.js';
-import { loadProfile, saveProfile } from '../lib/storage.js';
+import { clearProfile, loadProfile, saveProfile } from '../lib/storage.js';
 import { SetupForm } from '../setup/SetupForm.js';
 import { Logo } from '../ui/Logo.js';
 import { ThemeToggle } from '../ui/ThemeToggle.js';
@@ -15,6 +15,10 @@ export function Dashboard(): ReactElement {
   const goHome = (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
     navigate('home');
+  };
+  const forget = () => {
+    clearProfile();
+    setProfile(null);
   };
   const save = (next: Profile) => {
     saveProfile(next);
@@ -49,6 +53,7 @@ export function Dashboard(): ReactElement {
       <main id="main" className={styles['main']}>
         {editing || !profile ? (
           <SetupForm
+            key={profile ? 'edit' : 'new'}
             initial={profile}
             onSave={save}
             {...(profile
@@ -56,6 +61,7 @@ export function Dashboard(): ReactElement {
                   onCancel: () => {
                     setEditing(false);
                   },
+                  onForget: forget,
                 }
               : {})}
           />

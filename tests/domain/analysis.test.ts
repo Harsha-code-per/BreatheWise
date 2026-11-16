@@ -11,7 +11,12 @@ describe('analyse', () => {
   const analysis = analyse(makeProfile(), makeAir());
 
   it('describes the air right now', () => {
-    expect(analysis).toMatchObject({ placeName: 'Delhi', smogNow: true, planDate: '2026-11-20', planIsTomorrow: false });
+    expect(analysis).toMatchObject({
+      placeName: 'Delhi',
+      smogNow: true,
+      planDate: '2026-11-20',
+      planIsTomorrow: false,
+    });
     expect(analysis.band.level).toBe('very-unhealthy');
     expect(analysis.sensitiveNames).toEqual(['Mira', 'Nani']);
     expect(analysis.outlook).toHaveLength(2);
@@ -32,8 +37,15 @@ describe('analyse', () => {
 
   it('shortens place names and flags evening plans as tomorrow', () => {
     const air = makeAir('2026-11-20T19:00');
-    const evening = analyse(makeProfile(), { ...air, place: { ...air.place, name: 'Delhi, NCT, India' } });
-    expect(evening).toMatchObject({ placeName: 'Delhi', planIsTomorrow: true, planDate: '2026-11-21' });
+    const evening = analyse(makeProfile(), {
+      ...air,
+      place: { ...air.place, name: 'Delhi, NCT, India' },
+    });
+    expect(evening).toMatchObject({
+      placeName: 'Delhi',
+      planIsTomorrow: true,
+      planDate: '2026-11-21',
+    });
   });
 
   it('reports zero totals when nothing applies', () => {

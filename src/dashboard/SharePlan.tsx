@@ -2,7 +2,7 @@ import { type ReactElement, useState } from 'react';
 import type { Action } from '../domain/action.js';
 
 /** Builds the message neighbours receive. */
-export function shareText(placeName: string, actions: readonly Action[]): string {
+function shareText(placeName: string, actions: readonly Action[]): string {
   const steps = actions.map((action) => `• ${action.title}`).join('\n');
   return `Our street's smog plan for ${placeName}:\n${steps}\nMade with BreatheWise.`;
 }

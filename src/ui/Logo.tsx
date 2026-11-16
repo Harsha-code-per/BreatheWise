@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 /** The BreatheWise mark: a winter sun with two breaths of air drawn across it. */
-export function LogoMark({ size = 32 }: { size?: number }): ReactElement {
+function LogoMark({ size = 32 }: { size?: number }): ReactElement {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" focusable="false">
       <circle cx="16" cy="13" r="8.5" fill="var(--sun)" />

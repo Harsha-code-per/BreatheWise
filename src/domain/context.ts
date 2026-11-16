@@ -8,10 +8,10 @@ import type { AirHour, AirSnapshot, Profile } from './schemas.js';
 import { dayOf, hourOf } from './time.js';
 
 /** From this hour on, too little of the day is left to plan, so the plan targets tomorrow. */
-export const LAST_PLANNING_HOUR = 18;
+const LAST_PLANNING_HOUR = 18;
 
 /** First waking hour considered for outdoor plans. */
-export const FIRST_WAKING_HOUR = 6;
+const FIRST_WAKING_HOUR = 6;
 
 /** Creates the plan context from a profile and a validated air snapshot. */
 export function buildContext(profile: Profile, air: AirSnapshot): PlanContext {

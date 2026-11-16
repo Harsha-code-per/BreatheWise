@@ -1,6 +1,6 @@
-import { type ReactElement, useEffect, useRef, useState, type RefObject } from 'react';
+import { type ReactElement, useCallback, useEffect, useState, type RefObject } from 'react';
 import styles from './landing.module.css';
-import { createSkyRenderer } from './sky-renderer.js';
+import { createSkyRenderer, type SkyRenderer } from './sky-renderer.js';
 
 /** True when the page is showing its dark theme, by choice or by system setting. */
 export function prefersNight(): boolean {
@@ -13,16 +13,17 @@ export function prefersNight(): boolean {
  * assistive technology; without WebGL a CSS gradient that also clears on scroll stands in.
  */
 export function SmogSky({ clarity }: { clarity: RefObject<number> }): ReactElement {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [fallback, setFallback] = useState(false);
+  const [sky, setSky] = useState<{
+    canvas: HTMLCanvasElement;
+    renderer: SkyRenderer | null;
+  } | null>(null);
+  const attach = useCallback((canvas: HTMLCanvasElement | null) => {
+    if (canvas) setSky({ canvas, renderer: createSkyRenderer(canvas) });
+  }, []);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const renderer = canvas ? createSkyRenderer(canvas) : null;
-    if (!canvas || !renderer) {
-      setFallback(true);
-      return;
-    }
+    if (!sky?.renderer) return;
+    const { canvas, renderer } = sky;
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const night = prefersNight();
     const fit = () => {
@@ -46,11 +47,11 @@ export function SmogSky({ clarity }: { clarity: RefObject<number> }): ReactEleme
       observer.disconnect();
       renderer.dispose();
     };
-  }, [clarity]);
+  }, [sky, clarity]);
 
   return (
-    <div className={styles['sky']} data-fallback={fallback}>
-      <canvas ref={canvasRef} className={styles['canvas']} aria-hidden="true" />
+    <div className={styles['sky']} data-fallback={sky !== null && sky.renderer === null}>
+      <canvas ref={attach} className={styles['canvas']} aria-hidden="true" />
     </div>
   );
 }

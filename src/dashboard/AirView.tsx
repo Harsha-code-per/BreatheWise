@@ -15,7 +15,7 @@ import { SharePlan } from './SharePlan.js';
 import { Tabs } from './Tabs.js';
 
 /** The assistant for a loaded forecast: engine results render at once, AI wording follows. */
-export function Insights({ profile, air }: { profile: Profile; air: AirSnapshot }): ReactElement {
+function Insights({ profile, air }: { profile: Profile; air: AirSnapshot }): ReactElement {
   const analysis = useMemo(() => analyse(profile, air), [profile, air]);
   const loadPlan = useCallback(() => api.plan(profile), [profile]);
   const [plan] = useRemote(loadPlan);

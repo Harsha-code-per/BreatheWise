@@ -11,10 +11,11 @@ interface Props {
   initial: Profile | null;
   onSave: (profile: Profile) => void;
   onCancel?: () => void;
+  onForget?: () => void;
 }
 
 /** Collects the family profile. Problems are listed in a summary that takes focus. */
-export function SetupForm({ initial, onSave, onCancel }: Props): ReactElement {
+export function SetupForm({ initial, onSave, onCancel, onForget }: Props): ReactElement {
   const [draft, setDraft] = useState<Draft>(initial ?? newDraft);
   const [errors, setErrors] = useState<string[]>([]);
   const summary = useRef<HTMLDivElement>(null);
@@ -68,7 +69,7 @@ export function SetupForm({ initial, onSave, onCancel }: Props): ReactElement {
         }}
       />
       <LifestyleFields draft={draft} onChange={setDraft} />
-      <label className={`field ${styles['narrow'] ?? ''}`}>
+      <label className={['field', styles['narrow']].join(' ')}>
         Language for explanations
         <select
           value={draft.language}
@@ -90,6 +91,11 @@ export function SetupForm({ initial, onSave, onCancel }: Props): ReactElement {
         {onCancel ? (
           <button type="button" className="button button-quiet" onClick={onCancel}>
             Cancel
+          </button>
+        ) : null}
+        {onForget ? (
+          <button type="button" className="button button-quiet" onClick={onForget}>
+            Forget my family
           </button>
         ) : null}
       </div>

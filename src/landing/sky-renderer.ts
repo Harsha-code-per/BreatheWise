@@ -5,7 +5,7 @@
 import { FRAGMENT_SHADER, VERTEX_SHADER } from './sky-shader.js';
 
 /** Inputs for one frame. */
-export interface SkyFrame {
+interface SkyFrame {
   time: number;
   clarity: number;
   night: boolean;

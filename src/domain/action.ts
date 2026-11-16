@@ -5,7 +5,7 @@
 import type { AqiBand } from './aqi.js';
 import type { AirHour, AirSnapshot, Member, Profile } from './schemas.js';
 
-export type ActionKind = 'routine' | 'indoor' | 'switch' | 'community';
+type ActionKind = 'routine' | 'indoor' | 'switch' | 'community';
 
 /** Measured effect of one action. Null means the effect is real but not quantified. */
 export interface Impact {
