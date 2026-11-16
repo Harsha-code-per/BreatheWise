@@ -31,7 +31,12 @@ export default tseslint.config(
     files: ['src/**/*.{ts,tsx}'],
     ...jsxA11y.flatConfigs.strict,
     plugins: { ...jsxA11y.flatConfigs.strict.plugins, 'react-hooks': reactHooks },
-    rules: { ...jsxA11y.flatConfigs.strict.rules, ...reactHooks.configs.recommended.rules },
+    rules: {
+      ...jsxA11y.flatConfigs.strict.rules,
+      ...reactHooks.configs.recommended.rules,
+      // WAI-ARIA tabs: a tab panel is focusable so keyboard users can reach its content.
+      'jsx-a11y/no-noninteractive-tabindex': ['error', { roles: ['tabpanel'] }],
+    },
   },
   {
     files: ['src/**/*.{ts,tsx}', 'api/**/*.ts'],

@@ -1,5 +1,5 @@
 import { type ReactElement, useRef, type MouseEvent } from 'react';
-import { navigate } from '../app/navigation.js';
+import { navigate, usePageEntry } from '../app/navigation.js';
 import { Logo } from '../ui/Logo.js';
 import { ThemeToggle } from '../ui/ThemeToggle.js';
 import styles from './landing.module.css';
@@ -23,6 +23,8 @@ function StartLink({ children }: { children: string }) {
 export function Landing(): ReactElement {
   const rootRef = useRef<HTMLDivElement>(null);
   const clarity = useClarity(rootRef);
+  const mainRef = useRef<HTMLElement>(null);
+  usePageEntry('BreatheWise: clear the air for your family', mainRef);
 
   return (
     <div ref={rootRef} className={styles['page']}>
@@ -37,7 +39,7 @@ export function Landing(): ReactElement {
           <StartLink>Check my air</StartLink>
         </div>
       </header>
-      <main id="main">
+      <main id="main" ref={mainRef} tabIndex={-1}>
         <section className={styles['hero']} aria-labelledby="hero-title">
           <h1 id="hero-title" className={styles['headline']}>
             Clear the air.

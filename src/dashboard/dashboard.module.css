@@ -209,6 +209,11 @@
   font-weight: 340;
 }
 
+.briefingText {
+  display: grid;
+  gap: var(--space-4);
+}
+
 .briefing h2 {
   font-size: var(--step-3);
 }

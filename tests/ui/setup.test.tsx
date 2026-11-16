@@ -42,10 +42,10 @@ describe('checkDraft', () => {
       home: { ...draft.home, areaM2: 1 },
     };
     expect(checkDraft(broken)).toEqual({
-      errors: ['Commute: check the km value.', 'Home: check the areaM2 value.'],
+      errors: ['Commute: check the one-way distance value.', 'Home: check the room size value.'],
     });
     expect(checkDraft({ ...draft, members: [] })).toEqual({
-      errors: ['Family: check the members value.'],
+      errors: ['Family: check the family list value.'],
     });
   });
 

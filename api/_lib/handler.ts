@@ -51,13 +51,24 @@ async function readBody(
   }
   const decision = limiter.check(`${route.name}:${clientKey(request)}`, route.rate);
   if (!decision.allowed) throw new ApiError('RATE_LIMITED', decision.retryAfterSeconds);
-  const text = await request.text();
-  if (text.length > MAX_BODY_BYTES) throw new ApiError('PAYLOAD_TOO_LARGE');
+  const text = await readLimited(request);
   try {
     return JSON.parse(text) as unknown;
   } catch {
     throw new ApiError('BAD_JSON');
   }
+}
+
+/** Reads the body as text, stopping as soon as it exceeds the byte limit (Content-Length can lie). */
+async function readLimited(request: Request): Promise<string> {
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for await (const chunk of request.body ?? []) {
+    total += chunk.byteLength;
+    if (total > MAX_BODY_BYTES) throw new ApiError('PAYLOAD_TOO_LARGE');
+    chunks.push(chunk);
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks));
 }
 
 /** Browsers send Origin on cross-site POSTs; when present it must match this host. */

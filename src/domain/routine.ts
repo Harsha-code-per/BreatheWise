@@ -7,7 +7,7 @@ import { levelRank } from './aqi.js';
 import { cigarettes, inhaledDose, percentLess, round1 } from './exposure.js';
 import { SMOG_PM25, trappedRuns } from './smog.js';
 import { formatHour, hourOf } from './time.js';
-import { cleanestWindow, worstWindow, type AirWindow } from './windows.js';
+import { windowRange, worstWindow, type AirWindow } from './windows.js';
 
 /** Last hour at which an outdoor workout or airing may start. */
 const OUTDOOR_UNTIL = 20;
@@ -38,9 +38,9 @@ function exercise(ctx: PlanContext): Timed | null {
   const { minutes, outdoors } = ctx.profile.exercise;
   if (minutes === 0 || !outdoors) return null;
   const length = Math.min(3, Math.ceil(minutes / 60));
-  const best = cleanestWindow(ctx.dayHours, query(ctx, length));
-  const worst = worstWindow(ctx.dayHours, query(ctx, length));
-  if (!best || !worst) return null;
+  const range = windowRange(ctx.dayHours, query(ctx, length));
+  if (!range) return null;
+  const { best, worst } = range;
   const hours = minutes / 60;
   const tooDirty = best.meanPm25 >= SMOG_PM25;
   return {
@@ -65,9 +65,9 @@ function exercise(ctx: PlanContext): Timed | null {
 }
 
 function airing(ctx: PlanContext): Timed | null {
-  const best = cleanestWindow(ctx.dayHours, query(ctx, 1));
-  const worst = worstWindow(ctx.dayHours, query(ctx, 1));
-  if (!best || !worst || best.meanPm25 >= SMOG_PM25) return null;
+  const range = windowRange(ctx.dayHours, query(ctx, 1));
+  if (!range || range.best.meanPm25 >= SMOG_PM25) return null;
+  const { best, worst } = range;
   return {
     id: 'air-out',
     kind: 'routine',

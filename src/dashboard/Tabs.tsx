@@ -73,6 +73,7 @@ export function Tabs({ tabs, label }: { tabs: readonly TabSpec[]; label: string 
           id={`${prefix}-panel-${tab.id}`}
           aria-labelledby={`${prefix}-tab-${tab.id}`}
           hidden={index !== selected}
+          tabIndex={0}
           className={styles['panel']}
         >
           {index === selected ? tab.panel : null}

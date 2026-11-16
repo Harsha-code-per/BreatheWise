@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import type { Briefing, PlanResponse } from '../domain/schemas.js';
+import type { Briefing, Language, PlanResponse } from '../domain/schemas.js';
 import type { Remote } from '../lib/useRemote.js';
 import styles from './dashboard.module.css';
 
@@ -12,11 +12,13 @@ export function BriefingCard({
   fallback,
   onRetry,
   retryingSoon,
+  language,
 }: {
   plan: Remote<PlanResponse>;
   fallback: Briefing;
   onRetry: () => void;
   retryingSoon: boolean;
+  language: Language;
 }): ReactElement {
   const fromAi = plan.status === 'ready' && plan.data.source === 'ai';
   const briefing = plan.status === 'ready' ? plan.data.briefing : fallback;
@@ -26,8 +28,10 @@ export function BriefingCard({
       aria-labelledby="briefing-title"
       aria-busy={plan.status === 'loading'}
     >
-      <h2 id="briefing-title">{briefing.headline}</h2>
-      <p>{briefing.summary}</p>
+      <div lang={fromAi ? language : undefined} className={styles['briefingText']}>
+        <h2 id="briefing-title">{briefing.headline}</h2>
+        <p>{briefing.summary}</p>
+      </div>
       <p className="hint" role="status">
         {authorNote(plan.status === 'loading', fromAi)}
         {retryingSoon ? ' Asking Gemini again in a few seconds.' : ''}

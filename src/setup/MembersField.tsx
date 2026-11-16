@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { MEMBER_GROUPS, type Member } from '../domain/schemas.js';
 import { newMember } from './draft.js';
 import { GROUP_LABELS } from './labels.js';
+import { nextMemberId, pickOption } from './options.js';
 import styles from './setup.module.css';
 
 /** Most families this size or larger share a home; the schema allows up to 12. */
@@ -19,8 +20,8 @@ export function MembersField({
     onChange(members.map((member, i) => (i === index ? { ...member, ...patch } : member)));
   };
   const add = () => {
-    const next = Math.max(...members.map((member) => Number(member.id.split('-')[1]))) + 1;
-    onChange([...members, newMember(next, 'child')]);
+    const id = nextMemberId(members.map((member) => member.id));
+    onChange([...members, { ...newMember(members.length, 'child'), id }]);
   };
 
   return (
@@ -44,7 +45,7 @@ export function MembersField({
             <select
               value={member.group}
               onChange={(event) => {
-                update(index, { group: event.target.value as Member['group'] });
+                update(index, { group: pickOption(MEMBER_GROUPS, event.target.value) });
               }}
             >
               {MEMBER_GROUPS.map((group) => (

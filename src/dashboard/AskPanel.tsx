@@ -1,5 +1,5 @@
 import { type ReactElement, useState, type SubmitEvent } from 'react';
-import type { Profile } from '../domain/schemas.js';
+import type { Language, Profile } from '../domain/schemas.js';
 import { api, RequestFailed } from '../lib/api.js';
 import styles from './dashboard.module.css';
 
@@ -8,6 +8,7 @@ interface Message {
   role: 'you' | 'breathewise';
   text: string;
   note?: string;
+  lang?: Language;
 }
 
 const SUGGESTIONS = [
@@ -31,6 +32,7 @@ export function AskPanel({ profile }: { profile: Profile }): ReactElement {
     const reply = await api.ask(profile, trimmed).then(
       (response) => ({
         text: response.answer,
+        ...(response.source === 'ai' ? { lang: profile.language } : {}),
         note: response.source === 'ai' ? 'Answered by Gemini' : 'Answered by BreatheWise',
       }),
       (error: unknown) => ({
@@ -48,13 +50,13 @@ export function AskPanel({ profile }: { profile: Profile }): ReactElement {
 
   return (
     <div className={styles['ask']}>
-      <div role="log" aria-live="polite" aria-label="Conversation" className={styles['log']}>
+      <div role="log" aria-label="Conversation" className={styles['log']}>
         {messages.length === 0 ? (
           <p className="hint">Ask anything about today’s air and your family’s plan.</p>
         ) : null}
         {messages.map((message) => (
           <div key={message.id} className={styles['message']} data-role={message.role}>
-            <p>{message.text}</p>
+            <p lang={message.lang}>{message.text}</p>
             {message.note ? <span className="hint">{message.note}</span> : null}
           </div>
         ))}

@@ -44,6 +44,14 @@ describe('createHandler', () => {
     ],
     ['PAYLOAD_TOO_LARGE', 413, post('echo', 'x'.repeat(MAX_BODY_BYTES + 1))],
     ['BAD_JSON', 400, post('echo', '{not json')],
+    [
+      'BAD_JSON',
+      400,
+      new Request('https://breathewise.test/api/echo', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-real-ip': '10.9.9.9' },
+      }),
+    ],
     ['INVALID_INPUT', 400, post('echo', { word: 'far too long a word' })],
     ['UPSTREAM_UNAVAILABLE', 502, post('echo', { word: 'upstream' })],
   ])('rejects with %s (%i)', async (code, status, request) => {

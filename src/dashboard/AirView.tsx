@@ -23,6 +23,7 @@ function Insights({ profile, air }: { profile: Profile; air: AirSnapshot }): Rea
   const analysis = useMemo(() => analyse(profile, air), [profile, air]);
   const { plan, retry: retryPlan, retryingSoon } = usePlan(profile);
   const choices = useChoices();
+  const fallback = useMemo(() => engineBriefing(analysis), [analysis]);
   const explanations = useMemo(
     () =>
       new Map(
@@ -33,7 +34,13 @@ function Insights({ profile, air }: { profile: Profile; air: AirSnapshot }): Rea
     [plan],
   );
   const list = (actions: typeof analysis.routine, empty: string) => (
-    <ActionList actions={actions} explanations={explanations} empty={empty} choices={choices} />
+    <ActionList
+      actions={actions}
+      explanations={explanations}
+      empty={empty}
+      choices={choices}
+      language={profile.language}
+    />
   );
 
   return (
@@ -44,9 +51,10 @@ function Insights({ profile, air }: { profile: Profile; air: AirSnapshot }): Rea
       </div>
       <BriefingCard
         plan={plan}
-        fallback={engineBriefing(analysis)}
+        fallback={fallback}
         onRetry={retryPlan}
         retryingSoon={retryingSoon}
+        language={profile.language}
       />
       <Tabs
         label="Your plan"

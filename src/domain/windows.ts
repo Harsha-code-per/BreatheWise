@@ -45,6 +45,17 @@ export function rankWindows(hours: readonly AirHour[], query: WindowQuery): AirW
   return windows.sort((a, b) => a.meanPm25 - b.meanPm25);
 }
 
+/** The cleanest and dirtiest windows from a single ranking, or null when none fit. */
+export function windowRange(
+  hours: readonly AirHour[],
+  query: WindowQuery,
+): { best: AirWindow; worst: AirWindow } | null {
+  const ranked = rankWindows(hours, query);
+  const [best] = ranked;
+  const worst = ranked.at(-1);
+  return best && worst ? { best, worst } : null;
+}
+
 /** The cleanest window, or null when the day has no complete run of hours. */
 export function cleanestWindow(hours: readonly AirHour[], query: WindowQuery): AirWindow | null {
   return rankWindows(hours, query)[0] ?? null;

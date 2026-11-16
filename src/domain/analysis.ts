@@ -11,6 +11,7 @@ import { indoorActions } from './home.js';
 import { routineActions } from './routine.js';
 import type { AirHour, AirSnapshot, Profile } from './schemas.js';
 import { dailyOutlook, isSmog, type DayOutlook } from './smog.js';
+import { shortPlaceName } from './names.js';
 import { switchActions } from './switches.js';
 import { dayOf } from './time.js';
 
@@ -49,7 +50,7 @@ export function analyse(profile: Profile, air: AirSnapshot): Analysis {
   const switches = switchActions(ctx);
   const community = communityActions(ctx);
   return {
-    placeName: air.place.name.split(',', 1).join(''),
+    placeName: shortPlaceName(air.place.name),
     current: ctx.current,
     band: ctx.band,
     smogNow: isSmog(ctx.current),

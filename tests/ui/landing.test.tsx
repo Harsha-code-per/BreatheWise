@@ -6,6 +6,7 @@ import { Landing } from '../../src/landing/Landing';
 import { createSkyRenderer, MAX_PIXEL_RATIO } from '../../src/landing/sky-renderer';
 import { SmogSky } from '../../src/landing/SmogSky';
 import {
+  CLARITY_EVENT,
   clarityAt,
   easeOut,
   INTRO_CLARITY,
@@ -163,13 +164,14 @@ describe('SmogSky', () => {
     );
     const clarity = { current: 0.3 };
     const { unmount } = render(<SmogSky clarity={clarity} />);
-    frames.shift()?.(16);
-    frames.shift()?.(32);
     expect(gl.drawArrays).toHaveBeenCalledTimes(1);
+    expect(frames).toHaveLength(0);
     clarity.current = 0.4;
-    frames.shift()?.(48);
+    window.dispatchEvent(new Event(CLARITY_EVENT));
     expect(gl.drawArrays).toHaveBeenCalledTimes(2);
     unmount();
+    window.dispatchEvent(new Event(CLARITY_EVENT));
+    expect(gl.drawArrays).toHaveBeenCalledTimes(2);
     expect(gl.deleteProgram).toHaveBeenCalled();
   });
 

@@ -7,6 +7,9 @@ import { useEffect, useRef, type RefObject } from 'react';
 
 /** Clarity reached by the entrance animation before any scrolling. */
 export const INTRO_CLARITY = 0.2;
+/** Fired on window whenever the clarity value changes, so a still sky can redraw on demand. */
+export const CLARITY_EVENT = 'bw:clarity';
+
 /** Length of the entrance animation, ms. */
 export const INTRO_MS = 2400;
 
@@ -41,6 +44,7 @@ export function useClarity(rootRef: RefObject<HTMLElement | null>): RefObject<nu
       );
       clarity.current = value;
       root.style.setProperty('--clarity', value.toFixed(3));
+      window.dispatchEvent(new Event(CLARITY_EVENT));
       frame = now - started < INTRO_MS && !calm ? requestAnimationFrame(update) : 0;
     };
     const onScroll = () => {

@@ -44,6 +44,16 @@ const FIELD_NAMES: Readonly<Record<string, string>> = {
   language: 'Language',
 };
 
+/** The visible label of each field, as people see it in the form. */
+const FIELD_LABELS: Readonly<Record<string, string>> = {
+  km: 'one-way distance',
+  daysPerWeek: 'days a week',
+  areaM2: 'room size',
+  purifierCadr: 'purifier CADR',
+  minutes: 'minutes a day',
+  members: 'family list',
+};
+
 /** Validates a draft. Returns the profile, or one message per problem. */
 export function checkDraft(draft: Draft): { profile: Profile } | { errors: string[] } {
   if (!draft.place) return { errors: ['Choose your city, or use your current location.'] };
@@ -54,8 +64,9 @@ export function checkDraft(draft: Draft): { profile: Profile } | { errors: strin
   const parsed = profileSchema.safeParse({ ...draft, members });
   if (parsed.success) return { profile: parsed.data };
   const errors = parsed.error.issues.map((issue) => {
-    const name = FIELD_NAMES[String(issue.path[0])] ?? 'Your answers';
-    return `${name}: check the ${String(issue.path.at(-1))} value.`;
+    const section = FIELD_NAMES[String(issue.path[0])] ?? 'Your answers';
+    const field = String(issue.path.at(-1));
+    return `${section}: check the ${FIELD_LABELS[field] ?? field} value.`;
   });
   return { errors: [...new Set(errors)] };
 }

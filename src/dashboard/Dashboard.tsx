@@ -1,5 +1,6 @@
-import { type ReactElement, useState, type MouseEvent } from 'react';
-import { navigate } from '../app/navigation.js';
+import { type ReactElement, useRef, useState, type MouseEvent } from 'react';
+import { navigate, usePageEntry } from '../app/navigation.js';
+import { shortPlaceName } from '../domain/names.js';
 import type { Profile } from '../domain/schemas.js';
 import { clearProfile, loadProfile, saveProfile } from '../lib/storage.js';
 import { SetupForm } from '../setup/SetupForm.js';
@@ -12,6 +13,8 @@ import styles from './dashboard.module.css';
 export function Dashboard(): ReactElement {
   const [profile, setProfile] = useState<Profile | null>(loadProfile);
   const [editing, setEditing] = useState(profile === null);
+  const mainRef = useRef<HTMLElement>(null);
+  usePageEntry('Your smog plan | BreatheWise', mainRef);
   const goHome = (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
     navigate('home');
@@ -38,7 +41,7 @@ export function Dashboard(): ReactElement {
         <div className={styles['headerActions']}>
           {profile && !editing ? (
             <p className={styles['summary']}>
-              {profile.place.name.split(',', 1).join('')}, {profile.members.length}{' '}
+              {shortPlaceName(profile.place.name)}, {profile.members.length}{' '}
               {profile.members.length === 1 ? 'person' : 'people'}
             </p>
           ) : null}
@@ -56,7 +59,7 @@ export function Dashboard(): ReactElement {
           <ThemeToggle />
         </div>
       </header>
-      <main id="main" className={styles['main']}>
+      <main id="main" ref={mainRef} tabIndex={-1} className={styles['main']}>
         {editing || !profile ? (
           <SetupForm
             key={profile ? 'edit' : 'new'}

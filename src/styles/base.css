@@ -66,6 +66,10 @@ a {
   text-underline-offset: 0.2em;
 }
 
+main:focus {
+  outline: none;
+}
+
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
@@ -149,7 +153,11 @@ a {
   transform: translateY(-200%);
 }
 
-.skip-link:focus-visible {
+.skip-linkmain:focus {
+  outline: none;
+}
+
+:focus-visible {
   transform: none;
 }
 

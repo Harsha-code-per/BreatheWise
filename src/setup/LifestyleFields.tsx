@@ -3,6 +3,7 @@ import { COMMUTE_MODES, COOKING_FUELS, HEATING_TYPES } from '../domain/schemas.j
 import { formatHour } from '../domain/time.js';
 import type { Draft } from './draft.js';
 import { FUEL_NAMES, HEAT_NAMES, MODE_NAMES } from './labels.js';
+import { pickOption } from './options.js';
 import styles from './setup.module.css';
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
@@ -52,7 +53,7 @@ export function LifestyleFields({ draft, onChange }: Props): ReactElement {
             <select
               value={draft.commute.mode}
               onChange={(event) => {
-                commute({ mode: event.target.value as Draft['commute']['mode'] });
+                commute({ mode: pickOption(COMMUTE_MODES, event.target.value) });
               }}
             >
               <Options values={COMMUTE_MODES} names={MODE_NAMES} />
@@ -132,7 +133,7 @@ export function LifestyleFields({ draft, onChange }: Props): ReactElement {
             <select
               value={draft.home.cooking}
               onChange={(event) => {
-                home({ cooking: event.target.value as Draft['home']['cooking'] });
+                home({ cooking: pickOption(COOKING_FUELS, event.target.value) });
               }}
             >
               <Options values={COOKING_FUELS} names={FUEL_NAMES} />
@@ -143,7 +144,7 @@ export function LifestyleFields({ draft, onChange }: Props): ReactElement {
             <select
               value={draft.home.heating}
               onChange={(event) => {
-                home({ heating: event.target.value as Draft['home']['heating'] });
+                home({ heating: pickOption(HEATING_TYPES, event.target.value) });
               }}
             >
               <Options values={HEATING_TYPES} names={HEAT_NAMES} />

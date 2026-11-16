@@ -1,9 +1,10 @@
 import { type ReactElement, useEffect, useRef, useState, type SubmitEvent } from 'react';
-import { LANGUAGES, type Intake, type Language, type Profile } from '../domain/schemas.js';
+import { LANGUAGES, type Intake, type Profile } from '../domain/schemas.js';
 import { api } from '../lib/api.js';
 import { applyIntake, checkDraft, newDraft, type Draft } from './draft.js';
 import { IntakeField } from './IntakeField.js';
-import { LANGUAGE_NAMES } from './labels.js';
+import { LANGUAGE_NAMES } from '../domain/names.js';
+import { pickOption } from './options.js';
 import { LifestyleFields } from './LifestyleFields.js';
 import { MembersField } from './MembersField.js';
 import { PlaceField } from './PlaceField.js';
@@ -83,12 +84,14 @@ export function SetupForm({ initial, onSave, onCancel, onForget }: Props): React
         <select
           value={draft.language}
           onChange={(event) => {
-            setDraft({ ...draft, language: event.target.value as Language });
+            setDraft({ ...draft, language: pickOption(LANGUAGES, event.target.value) });
           }}
         >
           {LANGUAGES.map((language) => (
             <option key={language} value={language}>
-              {LANGUAGE_NAMES[language]}
+              {language === 'en'
+                ? 'English'
+                : `${LANGUAGE_NAMES[language].native} (${LANGUAGE_NAMES[language].english})`}
             </option>
           ))}
         </select>
