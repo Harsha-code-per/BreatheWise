@@ -50,30 +50,52 @@ describe('App', () => {
     ).toBeInTheDocument();
     await userEvent.click(screen.getAllByRole('link', { name: 'Check my air' })[0]!);
     expect(
-      await screen.findByRole('heading', { name: 'Tell us about your family' }),
+      await screen.findByRole('heading', { name: 'Get your family’s smog plan' }),
     ).toBeInTheDocument();
   });
 });
 
 describe('ThemeToggle', () => {
-  it('starts from the system theme and remembers the choice', async () => {
+  it('starts from the system theme, switches and remembers the choice', async () => {
     mediaMatches('(prefers-color-scheme: dark)');
     render(<ThemeToggle />);
-    const toggle = screen.getByRole('button', { name: 'Dark mode' });
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    await userEvent.click(toggle);
+    await userEvent.click(screen.getByRole('button', { name: 'Switch to light theme' }));
     expect(document.documentElement.dataset['theme']).toBe('light');
     expect(localStorage.getItem('bw-theme')).toBe('light');
-    await userEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(screen.getByRole('button', { name: 'Switch to dark theme' }));
+    expect(document.documentElement.dataset['theme']).toBe('dark');
   });
 
-  it('respects a theme already chosen', () => {
+  it('respects a theme already chosen and survives blocked storage', async () => {
     document.documentElement.dataset['theme'] = 'light';
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
     render(<ThemeToggle />);
-    expect(screen.getByRole('button', { name: 'Dark mode' })).toHaveAttribute(
-      'aria-pressed',
-      'false',
+    await userEvent.click(screen.getByRole('button', { name: 'Switch to dark theme' }));
+    expect(screen.getByRole('button', { name: 'Switch to light theme' })).toBeInTheDocument();
+  });
+
+  it('follows system theme changes', () => {
+    let listener: () => void = () => undefined;
+    vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query: string) =>
+        ({
+          matches: false,
+          media: query,
+          addEventListener: (_: string, callback: () => void) => {
+            listener = callback;
+          },
+          removeEventListener: vi.fn(),
+        }) as unknown as MediaQueryList,
     );
+    const { unmount } = render(<ThemeToggle />);
+    expect(screen.getByRole('button', { name: 'Switch to dark theme' })).toBeInTheDocument();
+    act(() => {
+      document.documentElement.dataset['theme'] = 'dark';
+      listener();
+    });
+    expect(screen.getByRole('button', { name: 'Switch to light theme' })).toBeInTheDocument();
+    unmount();
   });
 });

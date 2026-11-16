@@ -7,21 +7,31 @@ import { ProviderError, statusOf, type AiRequest, type Provider } from './provid
 
 /** Cooldown after a 429 without a Retry-After header. */
 const RATE_LIMIT_COOLDOWN_MS = 60_000;
-/** Cooldown after a server error, timeout or network failure. */
-const TRANSIENT_COOLDOWN_MS = 20_000;
+/** Cooldown after a server error, timeout or network failure. Free-tier overload spikes pass quickly. */
+const TRANSIENT_COOLDOWN_MS = 10_000;
 /** Cooldown when the request itself is rejected (bad key or unknown model), which will not heal soon. */
 const CONFIG_COOLDOWN_MS = 60 * 60_000;
 
-/** Tuning for one cascade: per-provider timeout, total time for a request, and calls per day. */
+/** Tuning for one cascade: per-attempt timeout, total time for a request, and calls per day. */
 export interface CascadeOptions {
   timeoutMs: number;
   totalMs: number;
   dailyBudget: number;
   now?: () => number;
+  sleep?: (ms: number) => Promise<void>;
 }
 
-/** A provider is not worth starting with less time than this left. */
+/** An attempt is not worth starting with less time than this left. */
 const MIN_ATTEMPT_MS = 2000;
+/** "Busy" (5xx) answers are retried once on the same model after a short pause. */
+const ATTEMPTS_PER_PROVIDER = 2;
+const RETRY_PAUSE_MS = 700;
+
+/** When a request must finish and how many tries the current provider has left. */
+interface Limits {
+  deadline: number;
+  tries: number;
+}
 
 /** The text and which provider wrote it. */
 export interface CascadeResult {
@@ -39,25 +49,50 @@ export class Cascade {
 
   constructor(providers: readonly Provider[], options: CascadeOptions) {
     this.providers = providers;
-    this.options = { now: Date.now, ...options };
+    this.options = {
+      now: Date.now,
+      sleep: (ms) =>
+        new Promise((resolve) => {
+          setTimeout(resolve, ms);
+        }),
+      ...options,
+    };
   }
 
   /** Generates text with the first available provider, or returns null if none can answer. */
   async generate(request: AiRequest): Promise<CascadeResult | null> {
     const deadline = this.options.now() + this.options.totalMs;
     for (const provider of this.providers) {
-      const remaining = deadline - this.options.now();
-      if (remaining < MIN_ATTEMPT_MS) break;
-      if (this.isCooling(provider) || !this.spendBudget()) continue;
-      try {
-        const signal = AbortSignal.timeout(Math.min(this.options.timeoutMs, remaining));
-        const text = await provider.generate(request, signal);
-        return { text, provider: provider.name };
-      } catch (error) {
-        this.coolingUntil.set(provider.name, this.options.now() + cooldownFor(error));
-      }
+      if (this.isCooling(provider)) continue;
+      const text = await this.attempt(provider, request, {
+        deadline,
+        tries: ATTEMPTS_PER_PROVIDER,
+      });
+      if (text !== null) return { text, provider: provider.name };
     }
     return null;
+  }
+
+  private async attempt(
+    provider: Provider,
+    request: AiRequest,
+    limits: Limits,
+  ): Promise<string | null> {
+    const remaining = limits.deadline - this.options.now();
+    if (remaining < MIN_ATTEMPT_MS || !this.spendBudget()) return null;
+    try {
+      return await provider.generate(
+        request,
+        AbortSignal.timeout(Math.min(this.options.timeoutMs, remaining)),
+      );
+    } catch (error) {
+      if (limits.tries > 1 && isBusy(error)) {
+        await this.options.sleep(RETRY_PAUSE_MS);
+        return this.attempt(provider, request, { ...limits, tries: limits.tries - 1 });
+      }
+      this.coolingUntil.set(provider.name, this.options.now() + cooldownFor(error));
+      return null;
+    }
   }
 
   private isCooling(provider: Provider): boolean {
@@ -74,6 +109,11 @@ export class Cascade {
     this.callsToday += 1;
     return true;
   }
+}
+
+/** True for server-side overload (5xx), which usually clears within a second. */
+function isBusy(error: unknown): boolean {
+  return (statusOf(error) ?? 0) >= 500;
 }
 
 /** How long to skip a provider after this failure. */

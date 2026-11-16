@@ -24,6 +24,7 @@ function cascade(providers: Provider[], clock = { now: 0 }, budget = 100) {
     totalMs: 5000,
     dailyBudget: budget,
     now: () => clock.now,
+    sleep: () => Promise.resolve(),
   });
 }
 
@@ -69,6 +70,31 @@ describe('Cascade', () => {
     expect(never.calls).toBe(0);
   });
 
+  it('retries a busy model once before moving on', async () => {
+    const busy = provider('busy', new ProviderError(503), 'second try');
+    expect(await cascade([busy]).generate(request)).toEqual({
+      text: 'second try',
+      provider: 'busy',
+    });
+    const stubborn = provider('stubborn', new ProviderError(503), new ProviderError(503));
+    const backup = provider('backup', 'backup');
+    expect(await cascade([stubborn, backup]).generate(request)).toEqual({
+      text: 'backup',
+      provider: 'backup',
+    });
+    expect(stubborn.calls).toBe(2);
+  });
+
+  it('waits between retries with the default timer', async () => {
+    vi.useFakeTimers();
+    const busy = provider('busy', new ProviderError(503), 'later');
+    const chain = new Cascade([busy], { timeoutMs: 1000, totalMs: 5000, dailyBudget: 10 });
+    const pending = chain.generate(request);
+    await vi.advanceTimersByTimeAsync(700);
+    expect(await pending).toEqual({ text: 'later', provider: 'busy' });
+    vi.useRealTimers();
+  });
+
   it('passes each provider an abort signal', async () => {
     const generate = vi.fn((_: AiRequest, signal: AbortSignal) =>
       Promise.resolve(String(signal.aborted)),
@@ -86,8 +112,8 @@ describe('cooldownFor', () => {
     expect(cooldownFor(new ProviderError(429))).toBe(60_000);
     expect(cooldownFor({ status: 429 })).toBe(60_000);
     expect(cooldownFor(new ProviderError(404))).toBe(3_600_000);
-    expect(cooldownFor(new ProviderError(503))).toBe(20_000);
-    expect(cooldownFor(new Error('timeout'))).toBe(20_000);
+    expect(cooldownFor(new ProviderError(503))).toBe(10_000);
+    expect(cooldownFor(new Error('timeout'))).toBe(10_000);
   });
 
   it('reads statuses from different error shapes', () => {

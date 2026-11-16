@@ -13,7 +13,7 @@ type Reply = () => Response | Promise<Response>;
 
 /** Stubs the BreatheWise API. Unlisted endpoints answer with the engine-only defaults. */
 export function mockApi(
-  replies: Partial<Record<'air' | 'plan' | 'ask' | 'places', Reply>> = {},
+  replies: Partial<Record<'air' | 'plan' | 'ask' | 'places' | 'locate' | 'intake', Reply>> = {},
   air: AirSnapshot = makeAir(),
 ): MockInstance<typeof fetch> {
   const defaults: Record<string, Reply> = {
@@ -37,6 +37,12 @@ export function mockApi(
 /** Overrides matchMedia so chosen queries match. */
 export function mediaMatches(...queries: string[]): void {
   vi.spyOn(window, 'matchMedia').mockImplementation(
-    (query: string) => ({ matches: queries.includes(query), media: query }) as MediaQueryList,
+    (query: string) =>
+      ({
+        matches: queries.includes(query),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }) as unknown as MediaQueryList,
   );
 }

@@ -3,7 +3,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { api, RequestFailed } from '../../src/lib/api';
 import { impactLabels, shortDate } from '../../src/lib/format';
-import { clearProfile, loadProfile, saveProfile, saveTheme } from '../../src/lib/storage';
+import {
+  clearProfile,
+  loadChoices,
+  loadProfile,
+  saveChoices,
+  saveProfile,
+} from '../../src/lib/storage';
 import { useRemote } from '../../src/lib/useRemote';
 import { makeProfile } from '../fixtures';
 import { mockApi } from './helpers';
@@ -67,8 +73,13 @@ describe('storage', () => {
     expect(loadProfile()).toBeNull();
     clearProfile();
     expect(localStorage.getItem('bw-profile-v1')).toBeNull();
-    saveTheme('dark');
-    expect(localStorage.getItem('bw-theme')).toBe('dark');
+    expect(loadChoices()).toEqual([]);
+    saveChoices(['air-out']);
+    expect(loadChoices()).toEqual(['air-out']);
+    localStorage.setItem('bw-choices-v1', '{oops');
+    expect(loadChoices()).toEqual([]);
+    localStorage.setItem('bw-choices-v1', '[1]');
+    expect(loadChoices()).toEqual([]);
   });
 
   it('keeps working when storage is blocked', () => {
@@ -79,7 +90,7 @@ describe('storage', () => {
     vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(blocked);
     expect(() => {
       saveProfile(makeProfile());
-      saveTheme('light');
+      saveChoices(['x']);
       clearProfile();
     }).not.toThrow();
   });

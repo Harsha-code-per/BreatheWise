@@ -2,10 +2,10 @@
  * Keeps the family profile on this device only. Stored data is validated on read, so a stale
  * or tampered entry is ignored instead of crashing the app.
  */
-import { profileSchema, type Profile } from '../domain/schemas.js';
+import { choicesSchema, profileSchema, type Profile } from '../domain/schemas.js';
 
 const PROFILE_KEY = 'bw-profile-v1';
-const THEME_KEY = 'bw-theme';
+const CHOICES_KEY = 'bw-choices-v1';
 
 /** The saved profile, or null when none is stored or it is invalid. */
 export function loadProfile(): Profile | null {
@@ -35,11 +35,21 @@ export function clearProfile(): void {
   }
 }
 
-/** Remembers an explicit theme choice for the next visit. */
-export function saveTheme(theme: 'light' | 'dark'): void {
+/** The actions the family chose, or none when nothing valid is stored. */
+export function loadChoices(): string[] {
   try {
-    localStorage.setItem(THEME_KEY, theme);
+    const raw = localStorage.getItem(CHOICES_KEY);
+    return choicesSchema.safeParse(raw === null ? [] : JSON.parse(raw)).data ?? [];
   } catch {
-    // The choice still applies to this visit.
+    return [];
+  }
+}
+
+/** Remembers the chosen actions for the next visit. */
+export function saveChoices(ids: readonly string[]): void {
+  try {
+    localStorage.setItem(CHOICES_KEY, JSON.stringify(ids));
+  } catch {
+    // Choices still work for this visit.
   }
 }

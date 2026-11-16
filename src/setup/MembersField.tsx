@@ -33,6 +33,7 @@ export function MembersField({
             <input
               value={member.name}
               maxLength={40}
+              placeholder="Optional"
               onChange={(event) => {
                 update(index, { name: event.target.value });
               }}

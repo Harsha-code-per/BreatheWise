@@ -16,7 +16,7 @@ export interface RouteOptions<Schema extends z.ZodType, Result> {
   name: string;
   input: Schema;
   rate: RateRule;
-  run: (input: z.output<Schema>) => Promise<Result>;
+  run: (input: z.output<Schema>, request: Request) => Promise<Result>;
 }
 
 /** Builds a Vercel web handler (`export const POST = createHandler(...)`). */
@@ -28,7 +28,7 @@ export function createHandler<Schema extends z.ZodType, Result>(
       const body = await readBody(request, route);
       const parsed = route.input.safeParse(body);
       if (!parsed.success) throw new ApiError('INVALID_INPUT');
-      return jsonResponse(await route.run(parsed.data));
+      return jsonResponse(await route.run(parsed.data, request));
     } catch (error) {
       if (error instanceof ApiError) return errorResponse(error);
       console.error(`[api] ${route.name} failed unexpectedly`);

@@ -2,10 +2,16 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { checkDraft, newDraft } from '../../src/setup/draft';
+import { applyIntake, checkDraft, newDraft, newMember } from '../../src/setup/draft';
 import { SetupForm } from '../../src/setup/SetupForm';
 import { makeProfile } from '../fixtures';
 import { a11yViolations, mockApi } from './helpers';
+
+function stubGeolocation(
+  answer: (ok: PositionCallback, fail: PositionErrorCallback) => void,
+): void {
+  Object.assign(navigator, { geolocation: { getCurrentPosition: answer } });
+}
 
 function renderForm() {
   const onSave = vi.fn();
@@ -19,14 +25,17 @@ async function choosePlace() {
 }
 
 describe('checkDraft', () => {
-  it('asks for a place first, then names problems by section', () => {
+  it('asks for a place first, names unnamed members, then reports problems by section', () => {
     expect(checkDraft(newDraft())).toEqual({
       errors: ['Choose your city, or use your current location.'],
     });
     const draft = { ...newDraft(), place: makeProfile().place };
-    expect(checkDraft(draft)).toHaveProperty('profile');
-    const unnamed = { ...draft, members: [{ ...draft.members[0]!, name: ' ' }] };
-    expect(checkDraft(unnamed)).toEqual({ errors: ['Family: give every family member a name.'] });
+    const twoUnnamed = { ...draft, members: [newMember(0), newMember(1, 'child')] };
+    const result = checkDraft(twoUnnamed);
+    expect('profile' in result && result.profile.members.map((member) => member.name)).toEqual([
+      'You',
+      'Person 2',
+    ]);
     const broken = {
       ...draft,
       commute: { ...draft.commute, km: Number.NaN },
@@ -35,7 +44,7 @@ describe('checkDraft', () => {
     expect(checkDraft(broken)).toEqual({
       errors: ['Commute: check the km value.', 'Home: check the areaM2 value.'],
     });
-    expect(checkDraft({ ...draft, extra: 1, members: [] } as never)).toEqual({
+    expect(checkDraft({ ...draft, members: [] })).toEqual({
       errors: ['Family: check the members value.'],
     });
   });
@@ -46,6 +55,26 @@ describe('checkDraft', () => {
     expect(checkDraft({ ...newDraft(), place: { name: '', lat: 0, lon: 0 } })).toEqual({
       errors: ['Your answers: check the name value.'],
     });
+  });
+});
+
+describe('applyIntake', () => {
+  it('fills only the fields the description mentions', () => {
+    const draft = newDraft();
+    const merged = applyIntake(draft, {
+      members: [{ name: 'Nani', group: 'older', respiratory: true, outdoorWork: false }],
+      commuteMode: 'bus',
+      cooking: 'biomass',
+      exerciseMinutes: 45,
+    });
+    expect(merged.members).toEqual([
+      { id: 'member-0', name: 'Nani', group: 'older', respiratory: true, outdoorWork: false },
+    ]);
+    expect(merged.commute).toEqual({ ...draft.commute, mode: 'bus' });
+    expect(merged.home).toEqual({ ...draft.home, cooking: 'biomass' });
+    expect(merged.exercise).toEqual({ minutes: 45, outdoors: true });
+    expect(applyIntake(draft, { members: [] }).members).toBe(draft.members);
+    expect(applyIntake(draft, {})).toEqual(draft);
   });
 });
 
@@ -63,7 +92,7 @@ describe('SetupForm', () => {
     mockApi();
     renderForm();
     await choosePlace();
-    await userEvent.clear(screen.getByLabelText('Name'));
+    await userEvent.clear(screen.getByLabelText('Main room size (m²)'));
     await userEvent.clear(screen.getByLabelText('One-way distance (km)'));
     await userEvent.click(screen.getByRole('button', { name: 'Show my plan' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Please fix 2 things');
@@ -96,7 +125,7 @@ describe('SetupForm', () => {
     expect(onSave).toHaveBeenCalledWith({
       place: { name: 'Delhi, India', lat: 28.61, lon: 77.21 },
       members: [
-        { id: 'member-0', name: 'Me', group: 'adult', respiratory: false, outdoorWork: true },
+        { id: 'member-0', name: 'You', group: 'adult', respiratory: false, outdoorWork: true },
         { id: 'member-1', name: 'Mira', group: 'older', respiratory: true, outdoorWork: false },
       ],
       commute: { mode: 'metro', km: 12, daysPerWeek: 4, departHour: 9, returnHour: 18 },
@@ -158,26 +187,154 @@ describe('SetupForm', () => {
     expect(await screen.findByText('1 places found.')).toBeInTheDocument();
   });
 
-  it('uses the browser location, rounded to about a kilometre, or explains a refusal', async () => {
-    const getCurrentPosition = vi
-      .fn()
-      .mockImplementationOnce((ok: PositionCallback) => {
-        ok({ coords: { latitude: 28.61394, longitude: 77.20902 } } as GeolocationPosition);
-      })
-      .mockImplementationOnce((_: PositionCallback, fail: PositionErrorCallback) => {
-        fail({} as GeolocationPositionError);
-      });
-    Object.assign(navigator, { geolocation: { getCurrentPosition } });
+  it('names the browser location and fills the search box', async () => {
+    mockApi({
+      locate: () => Response.json({ name: 'Chennai, Tamil Nadu, India', lat: 13.08, lon: 80.27 }),
+    });
+    stubGeolocation((ok) => {
+      ok({ coords: { latitude: 13.0827, longitude: 80.2707 } } as GeolocationPosition);
+    });
     const { onSave } = renderForm();
     await userEvent.click(screen.getByRole('button', { name: 'Use my location' }));
-    expect(screen.getByText(/Using your current location/)).toBeInTheDocument();
+    expect(await screen.findByText('Found you: Chennai, Tamil Nadu, India.')).toBeInTheDocument();
+    expect(screen.getByLabelText('City or town')).toHaveValue('Chennai, Tamil Nadu, India');
     await userEvent.click(screen.getByRole('button', { name: 'Show my plan' }));
     expect(onSave.mock.calls[0]?.[0].place).toEqual({
-      name: 'My location',
-      lat: 28.61,
-      lon: 77.21,
+      name: 'Chennai, Tamil Nadu, India',
+      lat: 13.08,
+      lon: 80.27,
     });
+  });
+
+  it('explains a blocked permission', async () => {
+    stubGeolocation((_, fail) => {
+      fail({ code: 1 } as GeolocationPositionError);
+    });
+    renderForm();
     await userEvent.click(screen.getByRole('button', { name: 'Use my location' }));
-    expect(screen.getByText(/Location was not shared/)).toBeInTheDocument();
+    expect(await screen.findByText(/Location access is blocked/)).toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      'the browser cannot pinpoint the device',
+      () => {
+        stubGeolocation((_, fail) => {
+          fail({ code: 2 } as GeolocationPositionError);
+        });
+      },
+    ],
+    [
+      'the browser has no geolocation',
+      () => {
+        Reflect.deleteProperty(navigator, 'geolocation');
+      },
+    ],
+  ])('falls back to the network location when %s', async (_, setup) => {
+    mockApi({ locate: () => Response.json({ name: 'Chennai', lat: 13.08, lon: 80.27 }) });
+    setup();
+    renderForm();
+    await userEvent.click(screen.getByRole('button', { name: 'Use my location' }));
+    expect(await screen.findByText(/approximate location: Chennai/)).toBeInTheDocument();
+  });
+
+  it('falls back when naming the coordinates fails, and explains when nothing works', async () => {
+    const locate = vi
+      .fn()
+      .mockReturnValueOnce(new Response('', { status: 500 }))
+      .mockReturnValueOnce(
+        Response.json(
+          {
+            error: {
+              message: 'We could not work out your location. Search for your city instead.',
+            },
+          },
+          { status: 404 },
+        ),
+      );
+    mockApi({ locate });
+    stubGeolocation((ok) => {
+      ok({ coords: { latitude: 1, longitude: 2 } } as GeolocationPosition);
+    });
+    renderForm();
+    await userEvent.click(screen.getByRole('button', { name: 'Use my location' }));
+    expect(
+      await screen.findByText('We could not work out your location. Search for your city instead.'),
+    ).toBeInTheDocument();
+    const { api } = await import('../../src/lib/api');
+    vi.spyOn(api, 'locate').mockRejectedValue(new Error('bug'));
+    await userEvent.click(screen.getByRole('button', { name: 'Use my location' }));
+    expect(
+      await screen.findByText('We could not find your location. Search for your city instead.'),
+    ).toBeInTheDocument();
+  });
+
+  it('fills the form from a description, including the city', async () => {
+    mockApi({
+      intake: () =>
+        Response.json({
+          intake: {
+            city: 'Delhi',
+            members: [{ name: 'Asha', group: 'adult', respiratory: false, outdoorWork: false }],
+          },
+        }),
+    });
+    renderForm();
+    await userEvent.click(screen.getByRole('button', { name: 'Fill in the form for me' }));
+    expect(
+      screen.getByText('Write a sentence or two about your family first.'),
+    ).toBeInTheDocument();
+    await userEvent.type(
+      screen.getByLabelText('Your family in your own words'),
+      'Just me, Asha, in Delhi.',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Fill in the form for me' }));
+    expect(await screen.findByText(/Filled in from your description/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Name')).toHaveValue('Asha');
+    expect(screen.getByText('Selected: Delhi, India.')).toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      'Gemini is busy',
+      () =>
+        Response.json(
+          {
+            error: {
+              message:
+                'Gemini is busy right now. Fill in the form below, or try again in a minute.',
+            },
+          },
+          { status: 503 },
+        ),
+      /Gemini is busy/,
+    ],
+    [
+      'the city is unknown',
+      () => Response.json({ intake: { city: 'Atlantis' } }),
+      /Filled in from your description/,
+    ],
+    [
+      'no city is mentioned',
+      () => Response.json({ intake: { exerciseMinutes: 20 } }),
+      /Filled in from your description/,
+    ],
+  ])('copes when %s', async (_, intake, message) => {
+    mockApi({ intake, places: () => Response.json({ error: { message: 'x' } }, { status: 500 }) });
+    renderForm();
+    await userEvent.type(screen.getByLabelText('Your family in your own words'), 'Two of us.');
+    await userEvent.click(screen.getByRole('button', { name: 'Fill in the form for me' }));
+    expect(await screen.findByText(message)).toBeInTheDocument();
+  });
+
+  it('explains unexpected intake failures', async () => {
+    const { api } = await import('../../src/lib/api');
+    vi.spyOn(api, 'intake').mockRejectedValueOnce(new Error('bug'));
+    renderForm();
+    await userEvent.type(screen.getByLabelText('Your family in your own words'), 'Two of us.');
+    await userEvent.click(screen.getByRole('button', { name: 'Fill in the form for me' }));
+    expect(
+      await screen.findByText('Something went wrong. Fill in the form below.'),
+    ).toBeInTheDocument();
   });
 });

@@ -11,11 +11,11 @@ import {
 } from '../../src/domain/schemas.js';
 import { TtlCache } from './cache.js';
 import { ApiError } from './errors.js';
+import { getJson } from './upstream.js';
 
 const AIR_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast';
 const GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
-const TIMEOUT_MS = 6000;
 const AIR_TTL_MS = 15 * 60_000;
 const FORECAST_DAYS = '3';
 
@@ -51,16 +51,6 @@ const geocodePayload = z.object({
 
 const airCache = new TtlCache<AirSnapshot>(500);
 const placeCache = new TtlCache<Place[]>(500);
-
-async function getJson<S extends z.ZodType>(url: string, schema: S): Promise<z.output<S>> {
-  try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-    if (!response.ok) throw new ApiError('UPSTREAM_UNAVAILABLE');
-    return schema.parse(await response.json());
-  } catch {
-    throw new ApiError('UPSTREAM_UNAVAILABLE');
-  }
-}
 
 function at(values: readonly (number | null)[], index: number): number | null {
   return values[index] ?? null;

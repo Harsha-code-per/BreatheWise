@@ -10,9 +10,11 @@ import styles from './dashboard.module.css';
 export function BriefingCard({
   plan,
   fallback,
+  onRetry,
 }: {
   plan: Remote<PlanResponse>;
   fallback: Briefing;
+  onRetry: () => void;
 }): ReactElement {
   const fromAi = plan.status === 'ready' && plan.data.source === 'ai';
   const briefing = plan.status === 'ready' ? plan.data.briefing : fallback;
@@ -27,6 +29,13 @@ export function BriefingCard({
       <p className="hint" role="status">
         {authorNote(plan.status === 'loading', fromAi)}
       </p>
+      {plan.status !== 'loading' && !fromAi ? (
+        <p>
+          <button type="button" className="button button-quiet" onClick={onRetry}>
+            Ask Gemini again
+          </button>
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -35,5 +44,5 @@ function authorNote(loading: boolean, fromAi: boolean): string {
   if (loading) return 'Gemini is personalising this for your family…';
   return fromAi
     ? 'Written by Gemini from your forecast. Every number comes from BreatheWise’s calculations.'
-    : 'Written by BreatheWise from your forecast.';
+    : 'Written by BreatheWise from your forecast, because Gemini is busy on its free tier right now.';
 }

@@ -37,6 +37,12 @@ export function Dashboard(): ReactElement {
         </a>
         <div className={styles['headerActions']}>
           {profile && !editing ? (
+            <p className={styles['summary']}>
+              {profile.place.name.split(',', 1).join('')}, {profile.members.length}{' '}
+              {profile.members.length === 1 ? 'person' : 'people'}
+            </p>
+          ) : null}
+          {profile && !editing ? (
             <button
               type="button"
               className="button button-quiet"
@@ -44,7 +50,7 @@ export function Dashboard(): ReactElement {
                 setEditing(true);
               }}
             >
-              Edit family
+              Change details
             </button>
           ) : null}
           <ThemeToggle />

@@ -6,10 +6,13 @@ import type { z } from 'zod';
 import {
   airSnapshotSchema,
   askResponseSchema,
+  intakeResponseSchema,
   placeListSchema,
+  placeSchema,
   planResponseSchema,
   type AirSnapshot,
   type AskResponse,
+  type Intake,
   type Place,
   type PlanResponse,
   type Profile,
@@ -63,6 +66,12 @@ export const api = {
   /** Places matching a search. */
   places: async (query: string): Promise<Place[]> =>
     (await postJson('places', { query }, placeListSchema)).places,
+  /** Names browser coordinates, or estimates the city from the network when they are null. */
+  locate: (coords: { lat: number; lon: number } | null): Promise<Place> =>
+    postJson('locate', { coords }, placeSchema),
+  /** Profile fields Gemini read from the family's own description. */
+  intake: async (text: string): Promise<Intake> =>
+    (await postJson('intake', { text }, intakeResponseSchema)).intake,
   /** The family's briefing, written by AI when available. */
   plan: (profile: Profile): Promise<PlanResponse> =>
     postJson('plan', { profile }, planResponseSchema),

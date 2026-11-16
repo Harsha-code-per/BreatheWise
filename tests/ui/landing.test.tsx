@@ -4,7 +4,7 @@ import { useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Landing } from '../../src/landing/Landing';
 import { createSkyRenderer, MAX_PIXEL_RATIO } from '../../src/landing/sky-renderer';
-import { prefersNight, SmogSky } from '../../src/landing/SmogSky';
+import { SmogSky } from '../../src/landing/SmogSky';
 import {
   clarityAt,
   easeOut,
@@ -186,13 +186,6 @@ describe('SmogSky', () => {
     frames.shift()?.(16);
     frames.shift()?.(32);
     expect(gl.drawArrays).toHaveBeenCalledTimes(2);
-  });
-
-  it('follows the chosen theme, then the system theme', () => {
-    document.documentElement.dataset['theme'] = 'dark';
-    expect(prefersNight()).toBe(true);
-    delete document.documentElement.dataset['theme'];
-    expect(prefersNight()).toBe(false);
   });
 });
 

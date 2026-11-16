@@ -24,6 +24,13 @@ async function stubApi(page: Page): Promise<void> {
   await page.route('**/api/ask', (route) =>
     route.fulfill({ json: { answer: 'Open the windows at 12:00 for ten minutes.', source: 'ai' } }),
   );
+  const family = [
+    { name: 'Asha', group: 'adult', respiratory: false, outdoorWork: false },
+    { name: 'Mira', group: 'child', respiratory: true, outdoorWork: false },
+  ];
+  await page.route('**/api/intake', (route) =>
+    route.fulfill({ json: { intake: { city: 'Delhi', members: family } } }),
+  );
 }
 
 /** Collects console errors, which include any Content-Security-Policy violation. */
@@ -55,6 +62,10 @@ for (const scheme of ['light', 'dark'] as const) {
       const errors = watchConsole(page);
       await page.goto('/');
       await expect(page.getByRole('heading', { level: 1, name: 'Clear the air.' })).toBeVisible();
+      const other = scheme === 'dark' ? 'light' : 'dark';
+      await page.getByRole('button', { name: `Switch to ${other} theme` }).click();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', other);
+      await page.getByRole('button', { name: `Switch to ${scheme} theme` }).click();
       const beat = page.getByRole('heading', { name: 'Clean the room you sleep in.' });
       await beat.scrollIntoViewIfNeeded();
       await expect(beat).toBeInViewport();
@@ -67,11 +78,12 @@ for (const scheme of ['light', 'dark'] as const) {
       await stubApi(page);
       await page.goto('/');
       await page.getByRole('link', { name: 'Check my air' }).first().click();
-      await page.getByLabel('City or town').fill('Delhi');
-      await page.getByRole('button', { name: 'Search' }).click();
-      await page.getByRole('radio', { name: 'Delhi, India' }).check();
-      await page.getByRole('button', { name: 'Add a family member' }).click();
-      await page.getByLabel('Name').nth(1).fill('Mira');
+      await page
+        .getByLabel('Your family in your own words')
+        .fill('Asha and her daughter Mira, who has asthma, in Delhi.');
+      await page.getByRole('button', { name: 'Fill in the form for me' }).click();
+      await expect(page.getByText('Selected: Delhi, India.')).toBeVisible();
+      await expect(page.getByLabel('Name').nth(1)).toHaveValue('Mira');
       await page.getByRole('button', { name: 'Show my plan' }).click();
       await expect(page.getByRole('heading', { name: 'Air in Delhi now' })).toBeVisible();
       await expect(
@@ -98,6 +110,7 @@ test('the setup form can be completed with the keyboard alone', async ({ page })
   await page.getByLabel('City or town').focus();
   await page.keyboard.type('Delhi');
   await page.keyboard.press('Enter');
+  await expect(page.getByRole('radio', { name: 'Delhi, India' })).toBeVisible();
   await page.getByRole('radio', { name: 'Delhi, India' }).focus();
   await page.keyboard.press('Space');
   await page.getByRole('button', { name: 'Show my plan' }).focus();

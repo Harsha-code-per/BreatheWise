@@ -1,6 +1,8 @@
 import { type ReactElement, useEffect, useRef, useState, type SubmitEvent } from 'react';
-import { LANGUAGES, type Language, type Profile } from '../domain/schemas.js';
-import { checkDraft, newDraft, type Draft } from './draft.js';
+import { LANGUAGES, type Intake, type Language, type Profile } from '../domain/schemas.js';
+import { api } from '../lib/api.js';
+import { applyIntake, checkDraft, newDraft, type Draft } from './draft.js';
+import { IntakeField } from './IntakeField.js';
 import { LANGUAGE_NAMES } from './labels.js';
 import { LifestyleFields } from './LifestyleFields.js';
 import { MembersField } from './MembersField.js';
@@ -24,6 +26,12 @@ export function SetupForm({ initial, onSave, onCancel, onForget }: Props): React
     if (errors.length > 0) summary.current?.focus();
   }, [errors]);
 
+  const readIntake = async (intake: Intake) => {
+    setDraft((current) => applyIntake(current, intake));
+    const [found] = intake.city ? await api.places(intake.city).catch(() => []) : [];
+    if (found) setDraft((current) => ({ ...current, place: found }));
+  };
+
   const submit = (event: SubmitEvent) => {
     event.preventDefault();
     const result = checkDraft(draft);
@@ -33,7 +41,7 @@ export function SetupForm({ initial, onSave, onCancel, onForget }: Props): React
 
   return (
     <form className={styles['form']} onSubmit={submit} noValidate aria-labelledby="setup-title">
-      <h1 id="setup-title">{initial ? 'Edit your family' : 'Tell us about your family'}</h1>
+      <h1 id="setup-title">{initial ? 'Change your details' : 'Get your family’s smog plan'}</h1>
       <p className={styles['intro']}>
         Your answers are saved on this device only. To write your plan they are sent to our server
         and to Google Gemini, and neither keeps them.
@@ -56,6 +64,7 @@ export function SetupForm({ initial, onSave, onCancel, onForget }: Props): React
           </ul>
         </div>
       ) : null}
+      <IntakeField onRead={readIntake} />
       <PlaceField
         place={draft.place}
         onChange={(place) => {

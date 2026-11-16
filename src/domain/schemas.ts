@@ -20,7 +20,7 @@ export const LANGUAGES = ['en', 'hi', 'bn', 'mr', 'ta'] as const;
 
 const hourSchema = z.number().int().min(0).max(23);
 
-const placeSchema = z.object({
+export const placeSchema = z.object({
   name: z.string().trim().min(1).max(80),
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
@@ -113,7 +113,44 @@ export const askResponseSchema = z.object({
 export const placeQuerySchema = z.object({ query: z.string().trim().min(2).max(80) });
 export const placeListSchema = z.object({ places: z.array(placeSchema).max(8) });
 export const airRequestSchema = z.object({ place: placeSchema });
+export const locateRequestSchema = z.object({
+  coords: placeSchema.pick({ lat: true, lon: true }).nullable(),
+});
+
+/** What Gemini may extract from a free-text description of the household; every field is optional. */
+export const intakeSchema = z
+  .object({
+    city: z.string().trim().min(1).max(80),
+    members: z
+      .array(
+        z.object({
+          name: z.string().trim().max(40),
+          group: z.enum(MEMBER_GROUPS),
+          respiratory: z.boolean(),
+          outdoorWork: z.boolean(),
+        }),
+      )
+      .max(12),
+    commuteMode: z.enum(COMMUTE_MODES),
+    commuteKm: z.number().min(0).max(200),
+    commuteDays: z.number().int().min(0).max(7),
+    departHour: hourSchema,
+    cooking: z.enum(COOKING_FUELS),
+    heating: z.enum(HEATING_TYPES),
+    roomAreaM2: z.number().min(5).max(500),
+    purifierCadr: z.number().min(0).max(3000),
+    exerciseMinutes: z.number().int().min(0).max(240),
+    exercisesOutdoors: z.boolean(),
+  })
+  .partial();
+
+/** Ids of the actions a family chose to do. */
+export const choicesSchema = z.array(z.string().max(40)).max(40);
+
+export const intakeRequestSchema = z.object({ text: z.string().trim().min(3).max(600) });
+export const intakeResponseSchema = z.object({ intake: intakeSchema });
 
 export type Briefing = z.infer<typeof briefingSchema>;
+export type Intake = z.infer<typeof intakeSchema>;
 export type PlanResponse = z.infer<typeof planResponseSchema>;
 export type AskResponse = z.infer<typeof askResponseSchema>;

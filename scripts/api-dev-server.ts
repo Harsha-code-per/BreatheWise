@@ -19,7 +19,9 @@ export function apiDevServer(): Plugin {
   return {
     name: 'breathewise-local-vercel',
     configureServer(server) {
-      Object.assign(process.env, loadEnv(server.config.mode, process.cwd(), ''));
+      // Tests must never see real keys, so .env files are only loaded outside Vitest.
+      if (!process.env['VITEST'])
+        Object.assign(process.env, loadEnv(server.config.mode, process.cwd(), ''));
       server.middlewares.use('/api', (req, res, next) => {
         handle(server, req, res).catch(next);
       });

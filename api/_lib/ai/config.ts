@@ -9,9 +9,9 @@ import { compatibleProvider } from './openai-compatible.js';
 import type { Provider } from './provider.js';
 
 /** Each provider gets this long before the cascade moves on. */
-const PROVIDER_TIMEOUT_MS = 10_000;
+const PROVIDER_TIMEOUT_MS = 9_000;
 /** All providers together get this long, leaving headroom inside the 30 s function limit. */
-const CASCADE_TOTAL_MS = 20_000;
+const CASCADE_TOTAL_MS = 22_000;
 
 const optional = z.preprocess((value) => (value === '' ? undefined : value), z.string().optional());
 
@@ -27,7 +27,8 @@ const envSchema = z.object({
   ),
 });
 
-const DEFAULT_MODELS = 'gemini-3.5-flash,gemini-3.5-flash-lite';
+/** Fast "lite" models first: on the free tier they answer in about 3 s, while full Flash can take minutes. */
+const DEFAULT_MODELS = 'gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.8-flash';
 
 /** Builds the provider list in priority order from environment variables. */
 export function providersFrom(env: Record<string, string | undefined>): Provider[] {

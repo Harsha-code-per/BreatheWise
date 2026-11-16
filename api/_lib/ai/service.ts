@@ -9,6 +9,8 @@ import { engineAnswer } from '../../../src/domain/answer.js';
 import { engineBriefing } from '../../../src/domain/briefing.js';
 import {
   briefingSchema,
+  intakeSchema,
+  type Intake,
   type AirSnapshot,
   type AskResponse,
   type Briefing,
@@ -16,8 +18,9 @@ import {
   type Profile,
 } from '../../../src/domain/schemas.js';
 import { TtlCache } from '../cache.js';
+import { ApiError } from '../errors.js';
 import type { CascadeResult } from './cascade.js';
-import { briefingRequest, factsFor, grounded, questionRequest } from './prompts.js';
+import { briefingRequest, factsFor, grounded, intakeRequest, questionRequest } from './prompts.js';
 import type { AiRequest } from './provider.js';
 
 /** AI results are reused for half an hour; the forecast they explain changes hourly at most. */
@@ -32,6 +35,7 @@ export interface TextGenerator {
 export interface AiService {
   briefing: (profile: Profile, air: AirSnapshot) => Promise<PlanResponse>;
   answer: (profile: Profile, air: AirSnapshot, question: string) => Promise<AskResponse>;
+  intake: (text: string) => Promise<Intake>;
 }
 
 /** Thrown inside the cache loader so engine fallbacks are never cached. */
@@ -84,6 +88,13 @@ export function createAiService(generator: TextGenerator): AiService {
         return { answer: engineAnswer(analysis, question), source: 'engine' };
       }
     },
+
+    async intake(text) {
+      const result = await generator.generate(intakeRequest(text));
+      const parsed = intakeSchema.safeParse(parseJson(result?.text));
+      if (!parsed.success) throw new ApiError('AI_UNAVAILABLE');
+      return parsed.data;
+    },
   };
 }
 
@@ -97,18 +108,20 @@ export function validBriefing(
   facts: string,
   ids: ReadonlySet<string>,
 ): Briefing | null {
-  if (!text) return null;
-  let data: unknown;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    return null;
-  }
-  const parsed = briefingSchema.safeParse(data);
+  const parsed = briefingSchema.safeParse(parseJson(text));
   if (!parsed.success || !grounded(`${parsed.data.headline} ${parsed.data.summary}`, facts))
     return null;
   const explanations = parsed.data.explanations.filter(
     (explanation) => ids.has(explanation.id) && grounded(explanation.why, facts),
   );
   return { ...parsed.data, explanations };
+}
+
+/** Parses JSON text, returning undefined for missing or malformed input. */
+function parseJson(text: string | undefined): unknown {
+  try {
+    return text === undefined ? undefined : (JSON.parse(text) as unknown);
+  } catch {
+    return undefined;
+  }
 }

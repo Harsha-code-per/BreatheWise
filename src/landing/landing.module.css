@@ -5,10 +5,25 @@
   color: var(--ink);
 }
 
-.sky {
+.page::before {
+  content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--paper) 72%, transparent) 0%,
+    color-mix(in srgb, var(--paper) 50%, transparent) 38%,
+    transparent 68%
+  );
+  opacity: min(1, calc(var(--clarity) * 1.25));
+}
+
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
   background: linear-gradient(to top, #dcc49f, #8f857a);
 }
 
@@ -41,6 +56,12 @@
   justify-content: space-between;
   width: var(--page);
   margin: var(--space-5) auto 0;
+}
+
+.topActions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
 }
 
 .hero {
@@ -87,11 +108,7 @@
   display: grid;
   gap: var(--space-4);
   max-width: 34rem;
-  padding: var(--space-6);
-  border-radius: var(--radius-panel);
-  background: color-mix(in srgb, var(--paper) 78%, transparent);
-  backdrop-filter: blur(20px) saturate(1.15);
-  -webkit-backdrop-filter: blur(20px) saturate(1.15);
+  text-shadow: 0 1px 22px color-mix(in srgb, var(--paper) 70%, transparent);
 }
 
 .pane h2,
@@ -115,7 +132,7 @@
 
 .trapped {
   fill: var(--haze);
-  opacity: 0.28;
+  opacity: 0.18;
 }
 
 .cleanest {
@@ -212,7 +229,7 @@
 }
 
 @media (max-width: 640px) {
-  .pane {
-    padding: var(--space-5);
+  .page::before {
+    background: color-mix(in srgb, var(--paper) 58%, transparent);
   }
 }

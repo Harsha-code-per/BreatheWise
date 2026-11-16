@@ -1,12 +1,8 @@
 import { useState, type ReactElement } from 'react';
 import type { Place } from '../domain/schemas.js';
 import { api, RequestFailed } from '../lib/api.js';
+import { locateMe } from './locateMe.js';
 import styles from './setup.module.css';
-
-/** Coordinates are rounded to about 1 km before leaving the device. */
-function rounded(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 /** Finds the family's city by search, or by the browser's location with consent. */
 export function PlaceField({
@@ -38,22 +34,15 @@ export function PlaceField({
       setStatus(error instanceof RequestFailed ? error.message : 'Search failed. Try again.');
     }
   };
-  const locate = () => {
-    setStatus('Asking your browser for your location…');
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        onChange({
-          name: 'My location',
-          lat: rounded(position.coords.latitude),
-          lon: rounded(position.coords.longitude),
-        });
-        setStatus('Using your current location.');
-      },
-      () => {
-        setStatus('Location was not shared. Search for your city instead.');
-      },
-      { maximumAge: 600_000, timeout: 10_000 },
-    );
+  const locate = async () => {
+    setStatus('Finding your location…');
+    const found = await locateMe();
+    if (found.place) {
+      onChange(found.place);
+      setQuery(found.place.name);
+      setResults([]);
+    }
+    setStatus(found.message);
   };
 
   return (
@@ -79,13 +68,12 @@ export function PlaceField({
         <button type="button" className="button button-quiet" onClick={() => void search()}>
           Search
         </button>
-        <button type="button" className="button button-quiet" onClick={locate}>
+        <button type="button" className="button button-quiet" onClick={() => void locate()}>
           Use my location
         </button>
       </div>
       <p role="status" className="hint">
-        {place ? `Selected: ${place.name}. ` : ''}
-        {status}
+        {status || (place ? `Selected: ${place.name}.` : '')}
       </p>
       {results.length > 0 ? (
         <div className={styles['results']} role="group" aria-label="Search results">
@@ -97,6 +85,7 @@ export function PlaceField({
                 checked={place?.lat === result.lat && place.lon === result.lon}
                 onChange={() => {
                   onChange(result);
+                  setStatus(`Selected: ${result.name}.`);
                 }}
               />
               {result.name}

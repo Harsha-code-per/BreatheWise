@@ -1,18 +1,15 @@
-import { type ReactElement, useCallback, useEffect, useState, type RefObject } from 'react';
+import { type ReactElement, useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { useTheme } from '../ui/theme.js';
 import styles from './landing.module.css';
 import { createSkyRenderer, type SkyRenderer } from './sky-renderer.js';
-
-/** True when the page is showing its dark theme, by choice or by system setting. */
-export function prefersNight(): boolean {
-  const chosen = document.documentElement.dataset['theme'];
-  return chosen ? chosen === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-}
 
 /**
  * The animated sky behind the landing story. Decorative only, so it is hidden from
  * assistive technology; without WebGL a CSS gradient that also clears on scroll stands in.
  */
 export function SmogSky({ clarity }: { clarity: RefObject<number> }): ReactElement {
+  const night = useTheme() === 'dark';
+  const nightRef = useRef(night);
   const [sky, setSky] = useState<{
     canvas: HTMLCanvasElement;
     renderer: SkyRenderer | null;
@@ -22,10 +19,13 @@ export function SmogSky({ clarity }: { clarity: RefObject<number> }): ReactEleme
   }, []);
 
   useEffect(() => {
+    nightRef.current = night;
+  }, [night]);
+
+  useEffect(() => {
     if (!sky?.renderer) return;
     const { canvas, renderer } = sky;
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const night = prefersNight();
     const fit = () => {
       renderer.resize(canvas.clientWidth, canvas.clientHeight);
     };
@@ -33,11 +33,16 @@ export function SmogSky({ clarity }: { clarity: RefObject<number> }): ReactEleme
     observer.observe(canvas);
     fit();
     let frame = 0;
-    let drawn = -1;
+    let drawn = '';
     const loop = (now: number) => {
-      if (!still || clarity.current !== drawn) {
-        renderer.draw({ time: still ? 0 : now / 1000, clarity: clarity.current, night });
-        drawn = clarity.current;
+      const state = `${String(clarity.current)}|${String(nightRef.current)}`;
+      if (!still || state !== drawn) {
+        renderer.draw({
+          time: still ? 0 : now / 1000,
+          clarity: clarity.current,
+          night: nightRef.current,
+        });
+        drawn = state;
       }
       frame = requestAnimationFrame(loop);
     };

@@ -100,3 +100,33 @@
   display: flex;
   gap: var(--space-3);
 }
+
+.intake {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-panel);
+  background: color-mix(in srgb, var(--accent) 9%, var(--raised));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.intake h2 {
+  font-size: var(--step-2);
+}
+
+.intake textarea {
+  min-height: 6rem;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-field);
+  background: var(--raised);
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.intakeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}

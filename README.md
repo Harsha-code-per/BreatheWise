@@ -15,15 +15,15 @@ suggests lower-emission alternatives, and shows the measured effect of every cho
 
 ## The problem, mapped to the product
 
-| The challenge asks for…                | BreatheWise does it with…                                                                                                                                                                                   |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Families and communities               | A household profile with a sensitivity flag per member (children, over-65s, pregnancy, asthma or heart conditions, outdoor workers), plus neighbourhood actions you can share with one tap.                 |
-| Severe winter smog and urban pollution | Hourly PM2.5, PM10, NO₂, ozone and US AQI for three days, plus **boundary-layer height**, so it can tell when an inversion is trapping smoke at street level.                                               |
-| Low-emission daily routines            | Moves workouts, airing the home and the commute into the cleanest hours of the day, and keeps sensitive family members in during the worst three.                                                           |
-| Indoor air quality hacks               | Sizes a purifier for your room, or a DIY box-fan filter if you have none, using an indoor mass-balance model. Also covers kitchen smoke, incense and mosquito coils, wet cleaning, and the houseplant myth. |
-| Sustainable alternatives               | Commute swaps with CO₂ saved per week, heating swaps for wood and coal, carpooling, a walking school bus and a no-burning pledge.                                                                           |
-| Tailored to location and lifestyle     | City search or browser location (rounded to about 1 km), commute mode and distance, home size, purifier, cooking fuel, heating and exercise habits.                                                         |
-| Clearly explaining the direct impact   | Every action carries numbers: % less smoke breathed, cigarettes-equivalent avoided per week, and kg of CO₂ saved. Gemini explains them in plain language in five languages.                                 |
+| The challenge asks for…                | BreatheWise does it with…                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Families and communities               | A household profile with a sensitivity flag per member (children, over-65s, pregnancy, asthma or heart conditions, outdoor workers), plus neighbourhood actions you can share with one tap.                                                                                                                                       |
+| Severe winter smog and urban pollution | Hourly PM2.5, PM10, NO₂, ozone and US AQI for three days, plus **boundary-layer height**, so it can tell when an inversion is trapping smoke at street level.                                                                                                                                                                     |
+| Low-emission daily routines            | Moves workouts, airing the home and the commute into the cleanest hours of the day, and keeps sensitive family members in during the worst three.                                                                                                                                                                                 |
+| Indoor air quality hacks               | Sizes a purifier for your room, or a DIY box-fan filter if you have none, using an indoor mass-balance model. Also covers kitchen smoke, incense and mosquito coils, wet cleaning, and the houseplant myth.                                                                                                                       |
+| Sustainable alternatives               | Commute swaps with CO₂ saved per week, heating swaps for wood and coal, carpooling, a walking school bus and a no-burning pledge.                                                                                                                                                                                                 |
+| Tailored to location and lifestyle     | Describe the family in one sentence and **Gemini fills in the profile**. Location comes from city search, or from the browser (named via OpenStreetMap and rounded to about 1 km), with the network's approximate city as a fallback. The profile covers commute, home size, purifier, cooking fuel, heating and exercise habits. |
+| Clearly explaining the direct impact   | Every action carries numbers: % less smoke breathed, cigarettes-equivalent avoided per week, and kg of CO₂ saved. Tap **I'll do this** on any step and the _Your choices_ panel adds up the effect of everything you picked. Gemini explains the reasons in plain language in five languages.                                     |
 
 ## How GenAI is used, and kept honest
 
@@ -31,13 +31,19 @@ BreatheWise follows one rule: **the engine owns the numbers, the AI owns the wor
 
 1. A deterministic engine (`src/domain`) turns the forecast and the family profile into actions with
    quantified impacts. It is pure TypeScript, has no network, clock or randomness, and is 100% tested.
-2. **Gemini** (`@google/genai`, structured JSON output) writes a personalised briefing and a "why this matters"
-   for each action, and answers free-form questions in the Ask tab. Both are grounded in the engine's facts.
+2. **Gemini** (`@google/genai`, structured JSON output) has three jobs:
+   - It reads a family's own description into a profile (`/api/intake`).
+   - It writes a personalised briefing and a "why this matters" for each action (`/api/plan`).
+   - It answers free-form questions in the Ask tab (`/api/ask`).
+
+   The briefing and the answers are grounded in the engine's facts.
+
 3. Every AI reply is validated against a zod schema. A **numbers guard** discards any sentence that contains a
    number the engine did not calculate, so the model cannot invent a statistic.
 4. The free Gemini tier is rate limited, so AI calls go through a cascade:
    - a shared cache first;
-   - then each model in turn, skipping any model that is cooling down after a 429, 5xx or timeout;
+   - then the fast "lite" models in turn, retrying a busy (5xx) model once and skipping any model that is
+     cooling down after a 429, 5xx or timeout;
    - then an optional second free provider;
    - finally the engine's own wording.
 
@@ -62,7 +68,7 @@ flowchart LR
 | **Code quality**      | `src/domain/*`: small, pure modules with "why" JSDoc. `api/_lib/handler.ts`: one request pipeline, so each route is about 15 lines. `api/_lib/errors.ts`: a typed error catalogue. ESLint runs `strictTypeChecked`, `complexity ≤ 10`, `max-lines ≤ 200` and jsx-a11y with zero warnings, and knip finds unused code. `tests/quality/architecture.test.ts` enforces the layer boundaries.                                                                                                                                                                        |
 | **Security**          | `vercel.json` sets a strict CSP (no inline script or style, Trusted Types), HSTS, COOP/CORP and Permissions-Policy. The pipeline checks same-origin requests and content type, caps the body at 16 KB, rate limits each IP and validates with zod. The server fetches the air data itself, so clients cannot feed the AI fake facts. Prompt-injection fencing and the numbers guard are in `api/_lib/ai/prompts.ts`. Server logs contain no user data. Location is rounded to about 1 km. Scanning: CodeQL, Dependabot and `npm audit` in CI. See `SECURITY.md`. |
 | **Efficiency**        | The landing and app chunks are code-split and lazy-loaded. JS stays under budget (`scripts/bundle-budget.mjs`, about 110 kB gzip in total). The engine runs in the browser, so results show instantly. Upstream calls are cached per 1 km grid cell, identical in-flight requests are coalesced, AI answers are cached, and the AI has a daily budget. The WebGL sky is a single shader with no library, capped at 1.5× DPR, and renders a static frame when reduced motion is on.                                                                               |
-| **Testing**           | 190+ Vitest tests at **100% statements, branches, functions and lines**, enforced in `vite.config.ts`. They include property tests (fast-check) and axe-core checks in jsdom. Playwright e2e runs the production build under the real CSP on desktop and mobile, in light and dark themes, with axe WCAG 2.2 AA, and fails on any console or CSP error. See `docs/TESTING.md`.                                                                                                                                                                                   |
+| **Testing**           | 310+ Vitest tests at **100% statements, branches, functions and lines**, enforced in `vite.config.ts`. They include property tests (fast-check) and axe-core checks in jsdom. Playwright e2e runs the production build under the real CSP on desktop and mobile, in light and dark themes, with axe WCAG 2.2 AA, and fails on any console or CSP error. See `docs/TESTING.md`.                                                                                                                                                                                   |
 | **Accessibility**     | Semantic landmarks and a skip link. ARIA tabs with arrow, Home and End keys. A focusable error summary. Live regions for search, the briefing and chat. AQI is shown as text as well as colour. The hourly chart has a table alternative. Reduced motion and both colour schemes are respected. See `docs/ACCESSIBILITY.md`.                                                                                                                                                                                                                                     |
 | **Problem alignment** | The table above, plus `docs/EVALUATION.md`, which traces each requirement to the domain module, UI component and tests.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
@@ -108,8 +114,8 @@ BreatheWise gives general guidance, not medical advice.
 ## Project layout
 
 ```
-api/            Vercel functions: air, places, plan, ask
-api/_lib/       request pipeline, errors, rate limiting, cache, Open-Meteo client, AI cascade
+api/            Vercel functions: air, places, locate, intake, plan, ask
+api/_lib/       request pipeline, errors, rate limiting, cache, Open-Meteo and OpenStreetMap clients, AI cascade
 src/domain/     the pure engine: AQI, smog detection, time windows, exposure, indoor model, actions
 src/landing/    "Clear the air" landing page with the WebGL smog shader
 src/dashboard/  the assistant: now panel, briefing, tabs, Ask, sharing

@@ -12,6 +12,8 @@ export type ErrorCode =
   | 'BAD_JSON'
   | 'INVALID_INPUT'
   | 'UPSTREAM_UNAVAILABLE'
+  | 'LOCATION_UNKNOWN'
+  | 'AI_UNAVAILABLE'
   | 'INTERNAL';
 
 const CATALOGUE: Readonly<Record<ErrorCode, { status: number; message: string }>> = {
@@ -25,6 +27,14 @@ const CATALOGUE: Readonly<Record<ErrorCode, { status: number; message: string }>
   UPSTREAM_UNAVAILABLE: {
     status: 502,
     message: 'Air-quality data is unavailable right now. Try again shortly.',
+  },
+  LOCATION_UNKNOWN: {
+    status: 404,
+    message: 'We could not work out your location. Search for your city instead.',
+  },
+  AI_UNAVAILABLE: {
+    status: 503,
+    message: 'Gemini is busy right now. Fill in the form below, or try again in a minute.',
   },
   INTERNAL: { status: 500, message: 'Something went wrong on our side.' },
 };

@@ -4,7 +4,7 @@ BreatheWise has three layers. Dependencies point inwards only, and `tests/qualit
 
 ```
 ┌──────────────── Browser (src/) ────────────────┐      ┌────────── Vercel Functions (api/) ──────────┐
-│ landing/   WebGL "Clear the air" story         │      │ air.ts  places.ts  plan.ts  ask.ts           │
+│ landing/   WebGL "Clear the air" story         │      │ air places locate intake plan ask            │
 │ setup/     family profile form                 │ JSON │   └─ _lib/handler.ts  one request pipeline   │
 │ dashboard/ now panel, briefing, tabs, Ask      │◀────▶│ _lib/open-meteo.ts  forecast + cache         │
 │ lib/       typed API client, storage, hooks    │      │ _lib/ai/  cascade, providers, prompts, guard │

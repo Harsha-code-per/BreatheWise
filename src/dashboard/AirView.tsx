@@ -1,6 +1,7 @@
 import { type ReactElement, useCallback, useMemo } from 'react';
-import { analyse } from '../domain/analysis.js';
+import { allActions, analyse } from '../domain/analysis.js';
 import { engineBriefing } from '../domain/briefing.js';
+import { choiceImpact } from '../domain/choices.js';
 import type { AirSnapshot, Profile } from '../domain/schemas.js';
 import { api } from '../lib/api.js';
 import { useRemote } from '../lib/useRemote.js';
@@ -9,16 +10,19 @@ import { AskPanel } from './AskPanel.js';
 import { BriefingCard } from './BriefingCard.js';
 import styles from './dashboard.module.css';
 import { HourlyChart } from './HourlyChart.js';
+import { ImpactPanel } from './ImpactPanel.js';
 import { Method } from './Method.js';
 import { NowPanel } from './NowPanel.js';
 import { SharePlan } from './SharePlan.js';
 import { Tabs } from './Tabs.js';
+import { useChoices } from './useChoices.js';
 
 /** The assistant for a loaded forecast: engine results render at once, AI wording follows. */
 function Insights({ profile, air }: { profile: Profile; air: AirSnapshot }): ReactElement {
   const analysis = useMemo(() => analyse(profile, air), [profile, air]);
   const loadPlan = useCallback(() => api.plan(profile), [profile]);
-  const [plan] = useRemote(loadPlan);
+  const [plan, retryPlan] = useRemote(loadPlan);
+  const choices = useChoices();
   const explanations = useMemo(
     () =>
       new Map(
@@ -29,13 +33,16 @@ function Insights({ profile, air }: { profile: Profile; air: AirSnapshot }): Rea
     [plan],
   );
   const list = (actions: typeof analysis.routine, empty: string) => (
-    <ActionList actions={actions} explanations={explanations} empty={empty} />
+    <ActionList actions={actions} explanations={explanations} empty={empty} choices={choices} />
   );
 
   return (
     <div className={styles['insights']}>
-      <NowPanel analysis={analysis} />
-      <BriefingCard plan={plan} fallback={engineBriefing(analysis)} />
+      <div className={styles['side']}>
+        <NowPanel analysis={analysis} />
+        <ImpactPanel impact={choiceImpact(allActions(analysis), choices.chosen)} />
+      </div>
+      <BriefingCard plan={plan} fallback={engineBriefing(analysis)} onRetry={retryPlan} />
       <Tabs
         label="Your plan"
         tabs={[

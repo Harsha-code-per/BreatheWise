@@ -4,18 +4,18 @@ import { impactLabels } from '../lib/format.js';
 import styles from './dashboard.module.css';
 
 /** AI-written explanations keyed by action id. */
-export type Explanations = ReadonlyMap<string, string>;
+type Explanations = ReadonlyMap<string, string>;
 
-/** A list of recommendations, each with its time, effect and the reason it matters. */
-export function ActionList({
-  actions,
-  explanations,
-  empty,
-}: {
+/** The actions to show, their AI wording, and the family's choices. */
+interface Props {
   actions: readonly Action[];
   explanations: Explanations;
   empty: string;
-}): ReactElement {
+  choices: { chosen: readonly string[]; toggle: (id: string) => void };
+}
+
+/** A list of recommendations, each with its time, effect and the reason it matters. */
+export function ActionList({ actions, explanations, empty, choices }: Props): ReactElement {
   if (actions.length === 0) return <p className="hint">{empty}</p>;
   return (
     <ul className={styles['actions']}>
@@ -23,7 +23,7 @@ export function ActionList({
         <li key={action.id} className={styles['action']}>
           {action.when ? <time className={styles['when']}>{action.when}</time> : null}
           <div className={styles['actionBody']}>
-            <h3>{action.title}</h3>
+            <h3 id={`title-${action.id}`}>{action.title}</h3>
             <p>{explanations.get(action.id) ?? action.detail}</p>
             <ul className={styles['effects']} aria-label="Effect">
               {impactLabels(action.impact).map((label) => (
@@ -32,6 +32,17 @@ export function ActionList({
                 </li>
               ))}
             </ul>
+            <button
+              type="button"
+              className={styles['choose']}
+              aria-pressed={choices.chosen.includes(action.id)}
+              aria-describedby={`title-${action.id}`}
+              onClick={() => {
+                choices.toggle(action.id);
+              }}
+            >
+              I’ll do this
+            </button>
           </div>
         </li>
       ))}

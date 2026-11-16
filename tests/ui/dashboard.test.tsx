@@ -48,7 +48,7 @@ describe('Dashboard with a saved family', () => {
     mockApi();
     await openDashboard();
     expect(
-      await screen.findByText('Written by BreatheWise from your forecast.'),
+      await screen.findByText(/Written by BreatheWise from your forecast/),
     ).toBeInTheDocument();
   });
 
@@ -178,12 +178,14 @@ describe('Dashboard with a saved family', () => {
   it('edits, cancels, forgets the family and returns home', async () => {
     mockApi();
     await openDashboard();
-    await userEvent.click(screen.getByRole('button', { name: 'Edit family' }));
-    expect(screen.getByRole('heading', { name: 'Edit your family' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Change details' }));
+    expect(screen.getByRole('heading', { name: 'Change your details' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Edit family' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Change details' }));
     await userEvent.click(screen.getByRole('button', { name: 'Forget my family' }));
-    expect(screen.getByRole('heading', { name: 'Tell us about your family' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Get your family’s smog plan' }),
+    ).toBeInTheDocument();
     expect(localStorage.getItem('bw-profile-v1')).toBeNull();
     await userEvent.click(screen.getByRole('link', { name: 'BreatheWise home' }));
     await waitFor(() => {
@@ -199,6 +201,65 @@ describe('Dashboard with a saved family', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Show my plan' }));
     expect(await screen.findByRole('heading', { name: 'Air in Delhi now' })).toBeInTheDocument();
     expect(localStorage.getItem('bw-profile-v1')).toContain('Delhi');
+  });
+
+  it('adds up the steps the family chooses and remembers them', async () => {
+    mockApi();
+    const { unmount } = await openDashboard();
+    expect(screen.getByText('Delhi, 4 people')).toBeInTheDocument();
+    const impact = screen.getByRole('region', { name: 'Your choices' });
+    expect(impact).toHaveTextContent('Tap “I’ll do this”');
+    await userEvent.click(screen.getByRole('tab', { name: 'At home' }));
+    const filter = screen.getByRole('button', {
+      name: 'I’ll do this',
+      description: /Build a box-fan filter/,
+    });
+    await userEvent.click(filter);
+    expect(filter).toHaveAttribute('aria-pressed', 'true');
+    expect(impact).toHaveTextContent(
+      '1 step chosen. Together they spare each of you smoke equal to 20.2 cigarettes a week.',
+    );
+    await userEvent.click(screen.getByRole('tab', { name: 'Greener choices' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'I’ll do this', description: /to the metro/ }),
+    );
+    expect(impact).toHaveTextContent('2 steps chosen.');
+    expect(impact).toHaveTextContent('They save 10.9 kg of CO₂ a week.');
+    unmount();
+    render(<Dashboard />);
+    expect(await screen.findByRole('region', { name: 'Your choices' })).toHaveTextContent(
+      '2 steps chosen.',
+    );
+  });
+
+  it('shows CO₂ alone when only a travel switch is chosen, and one person in the summary', async () => {
+    mockApi();
+    saveProfile(makeProfile({ members: makeProfile().members.slice(0, 1) }));
+    localStorage.setItem('bw-choices-v1', JSON.stringify(['commute-metro']));
+    render(<Dashboard />);
+    expect(await screen.findByText('Delhi, 1 person')).toBeInTheDocument();
+    const impact = screen.getByRole('region', { name: 'Your choices' });
+    expect(impact).toHaveTextContent('1 step chosen. They save 10.9 kg of CO₂ a week.');
+    expect(impact).not.toHaveTextContent('cigarette');
+  });
+
+  it('asks Gemini again when the first briefing came from the engine', async () => {
+    const plan = vi
+      .fn()
+      .mockReturnValueOnce(
+        Response.json({
+          source: 'engine',
+          briefing: { headline: 'Engine headline', summary: 'Engine summary.', explanations: [] },
+        }),
+      )
+      .mockReturnValueOnce(Response.json(aiPlan));
+    mockApi({ plan });
+    await openDashboard();
+    await userEvent.click(await screen.findByRole('button', { name: 'Ask Gemini again' }));
+    expect(
+      await screen.findByRole('heading', { name: aiPlan.briefing.headline }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ask Gemini again' })).not.toBeInTheDocument();
   });
 
   it('opens the method with every source', async () => {

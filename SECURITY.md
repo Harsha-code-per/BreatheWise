@@ -25,5 +25,6 @@ not a public issue. You will get a reply within a week.
 
 - The family profile is stored in `localStorage` on the user's device. "Forget my family" deletes it.
 - To write a plan, the profile is sent to our function and to Google Gemini. Neither stores it.
-- Browser location is rounded to about 1 km before it leaves the device.
+- Browser location is rounded to about 1 km on the server before it is named with OpenStreetMap Nominatim. Nothing more precise is stored or forwarded.
+- The network-location fallback uses the approximate city Vercel derives from the request. No third party is involved.
 - There are no accounts, cookies, analytics or trackers.

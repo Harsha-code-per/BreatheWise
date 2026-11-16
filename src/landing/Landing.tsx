@@ -1,6 +1,7 @@
 import { type ReactElement, useRef, type MouseEvent } from 'react';
 import { navigate } from '../app/navigation.js';
 import { Logo } from '../ui/Logo.js';
+import { ThemeToggle } from '../ui/ThemeToggle.js';
 import styles from './landing.module.css';
 import { SmogSky } from './SmogSky.js';
 import { Story } from './Story.js';
@@ -31,7 +32,10 @@ export function Landing(): ReactElement {
       <SmogSky clarity={clarity} />
       <header className={styles['topbar']}>
         <Logo />
-        <StartLink>Check my air</StartLink>
+        <div className={styles['topActions']}>
+          <ThemeToggle />
+          <StartLink>Check my air</StartLink>
+        </div>
       </header>
       <main id="main">
         <section className={styles['hero']} aria-labelledby="hero-title">
