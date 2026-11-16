@@ -96,6 +96,7 @@ export function intakeRequest(text: string): AiRequest {
       'Include only fields the description states or clearly implies; leave every other field out.',
       'members lists everyone in the home, including the writer ("I", "me") as an adult unless stated otherwise.',
       'If a household size is given, list that many members, adding adults for anyone not described.',
+      'Name members as written, else by relationship to the writer (Me, Wife, Son, Grandmother); never use placeholders like "Adult 3", use "Family member" instead.',
       'Member groups: adult; child (under 18); older (65 or over); pregnant.',
       'respiratory is true for asthma, COPD, or a heart or lung condition. Hours are 0–23; distances are one-way km.',
       'city is the city or town name only.',
