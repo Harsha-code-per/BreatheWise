@@ -119,3 +119,43 @@ test('the setup form can be completed with the keyboard alone', async ({ page })
   await page.keyboard.press('ArrowRight');
   await expect(page.getByRole('tab', { name: 'At home' })).toHaveAttribute('aria-selected', 'true');
 });
+
+test('recovers when Gemini is busy and when the forecast is down', async ({ page }) => {
+  await stubApi(page);
+  let planCalls = 0;
+  await page.route('**/api/plan', (route) => {
+    planCalls += 1;
+    const source = planCalls === 1 ? 'engine' : 'ai';
+    const headline = source === 'ai' ? 'Gemini is back' : 'Written while Gemini was busy';
+    return route.fulfill({
+      json: { source, briefing: { headline, summary: 'Stay in.', explanations: [] } },
+    });
+  });
+  let airCalls = 0;
+  await page.route('**/api/air', (route) => {
+    airCalls += 1;
+    if (airCalls === 1) {
+      return route.fulfill({
+        status: 502,
+        json: {
+          error: {
+            code: 'UPSTREAM_UNAVAILABLE',
+            message: 'Air-quality data is unavailable right now. Try again shortly.',
+          },
+        },
+      });
+    }
+    return route.fulfill({ json: makeAir() });
+  });
+  await page.goto('/app');
+  await page.getByLabel('City or town').fill('Delhi');
+  await page.getByRole('button', { name: 'Search' }).click();
+  await page.getByRole('radio', { name: 'Delhi, India' }).check();
+  await page.getByRole('button', { name: 'Show my plan' }).click();
+  await expect(page.getByRole('alert')).toContainText('Air-quality data is unavailable');
+  await page.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.getByRole('heading', { name: 'Written while Gemini was busy' })).toBeVisible();
+  await page.getByRole('button', { name: 'Ask Gemini again' }).click();
+  await expect(page.getByRole('heading', { name: 'Gemini is back' })).toBeVisible();
+  await expect(page.getByText(/Written by Gemini/)).toBeVisible();
+});

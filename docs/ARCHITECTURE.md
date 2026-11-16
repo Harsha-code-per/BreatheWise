@@ -58,7 +58,7 @@ limit inside the 30 s function budget.
 A failure puts that provider on cooldown:
 
 - **429:** for the `Retry-After` time, or 60 s if none is given.
-- **Server error or timeout:** 20 s.
+- **Server error or timeout:** 10 s. A busy (5xx) model is first retried once after 0.7 s.
 - **400, 401, 403 or 404:** 1 h, since these mean bad configuration.
 
 A daily call budget caps usage.

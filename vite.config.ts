@@ -11,8 +11,8 @@ export default defineConfig({
     restoreMocks: true,
     coverage: {
       provider: 'v8',
-      include: ['src/**/*.{ts,tsx}', 'api/**/*.ts'],
-      exclude: ['src/main.tsx', 'src/vite-env.d.ts'],
+      include: ['src/**/*.{ts,tsx}', 'api/**/*.ts', 'scripts/api-dev-server.ts'],
+      exclude: ['src/vite-env.d.ts'],
       thresholds: { lines: 100, statements: 100, functions: 100, branches: 100 },
     },
   },

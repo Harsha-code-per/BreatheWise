@@ -12,8 +12,12 @@ const tracked = [
 ];
 
 describe('repository hygiene', () => {
-  it.each(source)('%s stays small and focused (at most 200 lines)', (path) => {
-    expect(read(path).split('\n').length).toBeLessThanOrEqual(220);
+  it.each(source)('%s stays small and focused (at most 200 lines of code)', (path) => {
+    // Counted like ESLint's max-lines rule: blank and comment-only lines are skipped.
+    const code = read(path)
+      .split('\n')
+      .filter((line) => line.trim() !== '' && !/^\s*(\/\/|\/\*|\*)/.test(line));
+    expect(code.length).toBeLessThanOrEqual(200);
   });
 
   it('contains no API keys or tokens', () => {

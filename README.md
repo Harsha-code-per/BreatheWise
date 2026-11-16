@@ -56,7 +56,7 @@ flowchart LR
   P --> E[Engine<br/>pure, deterministic]
   E -->|facts as JSON| C{AI cascade}
   C -->|cache hit| R[Briefing]
-  C -->|Gemini Flash → Flash-Lite → optional fallback| V[Schema + numbers guard]
+  C -->|Gemini lite models → optional fallback| V[Schema + numbers guard]
   V --> R
   C -->|all busy| T[Engine wording] --> R
 ```

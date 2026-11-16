@@ -15,6 +15,7 @@ interface HeaderRule {
   headers: { key: string; value: string }[];
 }
 
+/** Vite plugin: serves `api/*.ts` in dev and sends vercel.json's headers in preview. */
 export function apiDevServer(): Plugin {
   return {
     name: 'breathewise-local-vercel',
