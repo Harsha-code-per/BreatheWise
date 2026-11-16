@@ -11,10 +11,12 @@ export function BriefingCard({
   plan,
   fallback,
   onRetry,
+  retryingSoon,
 }: {
   plan: Remote<PlanResponse>;
   fallback: Briefing;
   onRetry: () => void;
+  retryingSoon: boolean;
 }): ReactElement {
   const fromAi = plan.status === 'ready' && plan.data.source === 'ai';
   const briefing = plan.status === 'ready' ? plan.data.briefing : fallback;
@@ -28,6 +30,7 @@ export function BriefingCard({
       <p>{briefing.summary}</p>
       <p className="hint" role="status">
         {authorNote(plan.status === 'loading', fromAi)}
+        {retryingSoon ? ' Asking Gemini again in a few seconds.' : ''}
       </p>
       {plan.status !== 'loading' && !fromAi ? (
         <p>

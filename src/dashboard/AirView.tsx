@@ -15,13 +15,13 @@ import { Method } from './Method.js';
 import { NowPanel } from './NowPanel.js';
 import { SharePlan } from './SharePlan.js';
 import { Tabs } from './Tabs.js';
+import { usePlan } from './usePlan.js';
 import { useChoices } from './useChoices.js';
 
 /** The assistant for a loaded forecast: engine results render at once, AI wording follows. */
 function Insights({ profile, air }: { profile: Profile; air: AirSnapshot }): ReactElement {
   const analysis = useMemo(() => analyse(profile, air), [profile, air]);
-  const loadPlan = useCallback(() => api.plan(profile), [profile]);
-  const [plan, retryPlan] = useRemote(loadPlan);
+  const { plan, retry: retryPlan, retryingSoon } = usePlan(profile);
   const choices = useChoices();
   const explanations = useMemo(
     () =>
@@ -42,7 +42,12 @@ function Insights({ profile, air }: { profile: Profile; air: AirSnapshot }): Rea
         <NowPanel analysis={analysis} />
         <ImpactPanel impact={choiceImpact(allActions(analysis), choices.chosen)} />
       </div>
-      <BriefingCard plan={plan} fallback={engineBriefing(analysis)} onRetry={retryPlan} />
+      <BriefingCard
+        plan={plan}
+        fallback={engineBriefing(analysis)}
+        onRetry={retryPlan}
+        retryingSoon={retryingSoon}
+      />
       <Tabs
         label="Your plan"
         tabs={[
