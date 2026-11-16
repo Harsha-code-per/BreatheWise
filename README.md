@@ -9,7 +9,7 @@ suggests lower-emission alternatives, and shows the measured effect of every cho
 ![Coverage 100%](https://img.shields.io/badge/coverage-100%25-2f9e5b)
 ![WCAG 2.2 AA](https://img.shields.io/badge/WCAG-2.2%20AA-0b6d96)
 
-**Live app:** _deploying_
+**Live app:** https://breathewise-six.vercel.app
 
 **Stack:** React 19, TypeScript (strict), Vite, Vercel Functions, Google Gemini, Open-Meteo (CAMS)
 
