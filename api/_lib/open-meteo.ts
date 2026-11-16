@@ -1,0 +1,115 @@
+/**
+ * Client for the free, keyless Open-Meteo APIs: air quality (CAMS), boundary-layer height
+ * and place search. Responses are validated, merged by hour and cached per ~1 km grid cell.
+ */
+import { z } from 'zod';
+import {
+  airSnapshotSchema,
+  type AirHour,
+  type AirSnapshot,
+  type Place,
+} from '../../src/domain/schemas.js';
+import { TtlCache } from './cache.js';
+import { ApiError } from './errors.js';
+
+const AIR_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
+const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast';
+const GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+const TIMEOUT_MS = 6000;
+const AIR_TTL_MS = 15 * 60_000;
+const FORECAST_DAYS = '3';
+
+const series = z.array(z.number().nullable());
+const airPayload = z.object({
+  timezone: z.string(),
+  current: z.object({ time: z.string() }),
+  hourly: z.object({
+    time: z.array(z.string()),
+    us_aqi: series,
+    pm2_5: series,
+    pm10: series,
+    nitrogen_dioxide: series,
+    ozone: series,
+  }),
+});
+const weatherPayload = z.object({
+  hourly: z.object({ time: z.array(z.string()), boundary_layer_height: series }),
+});
+const geocodePayload = z.object({
+  results: z
+    .array(
+      z.object({
+        name: z.string(),
+        latitude: z.number(),
+        longitude: z.number(),
+        admin1: z.string().optional(),
+        country: z.string().optional(),
+      }),
+    )
+    .optional(),
+});
+
+const airCache = new TtlCache<AirSnapshot>(500);
+const placeCache = new TtlCache<Place[]>(500);
+
+async function getJson<S extends z.ZodType>(url: string, schema: S): Promise<z.output<S>> {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
+    if (!response.ok) throw new ApiError('UPSTREAM_UNAVAILABLE');
+    return schema.parse(await response.json());
+  } catch {
+    throw new ApiError('UPSTREAM_UNAVAILABLE');
+  }
+}
+
+function at(values: readonly (number | null)[], index: number): number | null {
+  return values[index] ?? null;
+}
+
+/** Hourly air quality with boundary-layer height for a place, cached for 15 minutes. */
+export async function fetchAir(place: Place): Promise<AirSnapshot> {
+  const lat = place.lat.toFixed(2);
+  const lon = place.lon.toFixed(2);
+  return airCache.getOrLoad(`${lat},${lon}`, AIR_TTL_MS, async () => {
+    const common = `latitude=${lat}&longitude=${lon}&timezone=auto&forecast_days=${FORECAST_DAYS}`;
+    const [air, weather] = await Promise.all([
+      getJson(
+        `${AIR_URL}?${common}&current=us_aqi&hourly=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone`,
+        airPayload,
+      ),
+      getJson(`${WEATHER_URL}?${common}&hourly=boundary_layer_height`, weatherPayload),
+    ]);
+    const blhByTime = new Map(
+      weather.hourly.time.map((time, i) => [time, at(weather.hourly.boundary_layer_height, i)]),
+    );
+    const { hourly } = air;
+    const hours = hourly.time.flatMap((time, i): AirHour[] => {
+      const [aqi, pm25, pm10] = [at(hourly.us_aqi, i), at(hourly.pm2_5, i), at(hourly.pm10, i)];
+      if (aqi === null || pm25 === null || pm10 === null) return [];
+      const extra = {
+        no2: at(hourly.nitrogen_dioxide, i),
+        o3: at(hourly.ozone, i),
+        blh: blhByTime.get(time) ?? null,
+      };
+      return [{ time, aqi, pm25, pm10, ...extra }];
+    });
+    const now = `${air.current.time.slice(0, 13)}:00`;
+    const snapshot = airSnapshotSchema.safeParse({ place, timezone: air.timezone, now, hours });
+    if (!snapshot.success) throw new ApiError('UPSTREAM_UNAVAILABLE');
+    return snapshot.data;
+  });
+}
+
+/** Up to six places matching a search, cached for a day. */
+export async function searchPlaces(query: string): Promise<Place[]> {
+  const key = query.toLowerCase();
+  return placeCache.getOrLoad(key, 24 * 60 * 60_000, async () => {
+    const params = new URLSearchParams({ name: query, count: '6', language: 'en', format: 'json' });
+    const { results = [] } = await getJson(`${GEOCODE_URL}?${params.toString()}`, geocodePayload);
+    return results.map((result) => ({
+      name: [result.name, result.admin1, result.country].filter(Boolean).join(', ').slice(0, 80),
+      lat: result.latitude,
+      lon: result.longitude,
+    }));
+  });
+}
