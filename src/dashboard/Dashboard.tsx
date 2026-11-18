@@ -31,9 +31,13 @@ function ProfileSummary({ profile, onEdit }: { profile: Profile; onEdit: () => v
 
 /** The assistant: set up the family once, then see today's air and plan. */
 export function Dashboard(): ReactElement {
-  const { profile, editing, edit, cancel, save, forget } = useProfile();
   const mainRef = useRef<HTMLElement>(null);
   usePageEntry('Your smog plan | BreatheWise', mainRef);
+  // Every change swaps the whole view and removes the button that was pressed, so focus moves
+  // to <main>, which stays, and screen readers start again from the new content.
+  const { profile, editing, edit, cancel, save, forget } = useProfile(() => {
+    mainRef.current?.focus();
+  });
 
   return (
     <div className={styles['app']}>

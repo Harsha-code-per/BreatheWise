@@ -1,6 +1,7 @@
 import { useState, type ReactElement } from 'react';
 import type { Place } from '../domain/schemas.js';
 import { api, RequestFailed } from '../lib/api.js';
+import { fieldId, useInvalid } from './fields.js';
 import { locateMe } from './locateMe.js';
 import styles from './setup.module.css';
 
@@ -15,6 +16,7 @@ export function PlaceField({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Place[]>([]);
   const [status, setStatus] = useState('');
+  const invalid = useInvalid('place');
 
   const search = async () => {
     if (query.trim().length < 2) {
@@ -52,6 +54,8 @@ export function PlaceField({
         <label className="field">
           City or town
           <input
+            id={fieldId('place')}
+            aria-invalid={invalid}
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);

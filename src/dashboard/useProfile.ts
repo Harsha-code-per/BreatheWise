@@ -16,8 +16,11 @@ export interface ProfileState {
   forget: () => void;
 }
 
-/** Loads the profile from this device and keeps storage in step with every change. */
-export function useProfile(): ProfileState {
+/**
+ * Loads the profile from this device and keeps storage in step with every change.
+ * `afterChange` runs after each action, for example to move focus.
+ */
+export function useProfile(afterChange: () => void): ProfileState {
   const [profile, setProfile] = useState<Profile | null>(loadProfile);
   const [editing, setEditing] = useState(profile === null);
   return {
@@ -25,18 +28,22 @@ export function useProfile(): ProfileState {
     editing: editing || profile === null,
     edit: () => {
       setEditing(true);
+      afterChange();
     },
     cancel: () => {
       setEditing(false);
+      afterChange();
     },
     save: (next) => {
       saveProfile(next);
       setProfile(next);
       setEditing(false);
+      afterChange();
     },
     forget: () => {
       clearProfile();
       setProfile(null);
+      afterChange();
     },
   };
 }

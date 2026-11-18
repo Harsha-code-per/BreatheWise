@@ -38,6 +38,7 @@ export function LifestyleFields({ draft, onChange }: Props): ReactElement {
             }}
           />
           <NumberField
+            name="commute.km"
             label="One-way distance (km)"
             value={commute.km}
             range={RANGES.commuteKm}
@@ -47,6 +48,7 @@ export function LifestyleFields({ draft, onChange }: Props): ReactElement {
             }}
           />
           <NumberField
+            name="commute.daysPerWeek"
             label="Days a week"
             value={commute.daysPerWeek}
             range={RANGES.commuteDays}
@@ -67,6 +69,7 @@ export function LifestyleFields({ draft, onChange }: Props): ReactElement {
         <legend>Your home</legend>
         <div className={styles['grid']}>
           <NumberField
+            name="home.areaM2"
             label="Main room size (m²)"
             value={home.areaM2}
             range={RANGES.roomAreaM2}
@@ -75,6 +78,7 @@ export function LifestyleFields({ draft, onChange }: Props): ReactElement {
             }}
           />
           <NumberField
+            name="home.purifierCadr"
             label="Purifier CADR (m³/h)"
             value={home.purifierCadr}
             range={RANGES.purifierCadr}
@@ -107,6 +111,7 @@ export function LifestyleFields({ draft, onChange }: Props): ReactElement {
         <legend>Exercise</legend>
         <div className={styles['grid']}>
           <NumberField
+            name="exercise.minutes"
             label="Minutes a day"
             value={exercise.minutes}
             range={RANGES.exerciseMinutes}

@@ -2,12 +2,25 @@
  * The labelled inputs every setup section is built from. Each one owns its label markup and
  * hands back an already-typed value, so sections only describe which fact goes where.
  */
-import type { ReactElement, ReactNode } from 'react';
+import { createContext, type ReactElement, type ReactNode, useContext } from 'react';
 import { formatHour } from '../domain/time.js';
 import { pickOption } from './options.js';
 import styles from './setup.module.css';
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
+
+/** Paths of the fields that failed the last submit; their inputs are marked invalid. */
+export const InvalidFields = createContext<ReadonlySet<string>>(new Set());
+
+/** The input id for a field path, so the error summary can link straight to it. */
+export function fieldId(path: string): string {
+  return `field-${path.replaceAll('.', '-')}`;
+}
+
+/** `aria-invalid` for a field path: present only while that field has an error. */
+export function useInvalid(path: string): true | undefined {
+  return useContext(InvalidFields).has(path) || undefined;
+}
 
 interface FieldProps<T> {
   label: string;
@@ -15,8 +28,12 @@ interface FieldProps<T> {
   onChange: (value: T) => void;
 }
 
-/** A number input limited to one of the schema's ranges, with an optional hint below it. */
+/**
+ * A number input limited to one of the schema's ranges, with an optional hint below it.
+ * `name` is the field's path in the profile, used for its id and error state.
+ */
 export function NumberField({
+  name,
   label,
   value,
   onChange,
@@ -24,20 +41,24 @@ export function NumberField({
   step,
   hint,
 }: FieldProps<number> & {
+  name: string;
   range: { min: number; max: number };
   step?: number;
   hint?: { id: string; text: string };
 }): ReactElement {
+  const invalid = useInvalid(name);
   return (
     <label className="field">
       {label}
       <input
+        id={fieldId(name)}
         type="number"
         min={range.min}
         max={range.max}
         step={step}
         value={value}
         aria-describedby={hint?.id}
+        aria-invalid={invalid}
         onChange={(event) => {
           onChange(event.target.valueAsNumber);
         }}

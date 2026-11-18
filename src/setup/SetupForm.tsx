@@ -1,7 +1,8 @@
-import { type ReactElement, useEffect, useRef, useState, type SubmitEvent } from 'react';
+import { type ReactElement, useEffect, useMemo, useRef, useState, type SubmitEvent } from 'react';
 import { LANGUAGES, type Intake, type Profile } from '../domain/schemas.js';
 import { api } from '../lib/api.js';
-import { applyIntake, checkDraft, newDraft, type Draft } from './draft.js';
+import { applyIntake, checkDraft, newDraft, type Draft, type FieldError } from './draft.js';
+import { fieldId, InvalidFields } from './fields.js';
 import { IntakeField } from './IntakeField.js';
 import { LANGUAGE_NAMES } from '../domain/names.js';
 import { pickOption } from './options.js';
@@ -20,7 +21,8 @@ interface Props {
 /** Collects the family profile. Problems are listed in a summary that takes focus. */
 export function SetupForm({ initial, onSave, onCancel, onForget }: Props): ReactElement {
   const [draft, setDraft] = useState<Draft>(initial ?? newDraft);
-  const [errors, setErrors] = useState<string[]>([]);
+  const [errors, setErrors] = useState<FieldError[]>([]);
+  const invalid = useMemo(() => new Set(errors.map((error) => error.field)), [errors]);
   const summary = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,76 +43,88 @@ export function SetupForm({ initial, onSave, onCancel, onForget }: Props): React
   };
 
   return (
-    <form className={styles['form']} onSubmit={submit} noValidate aria-labelledby="setup-title">
-      <h1 id="setup-title">{initial ? 'Change your details' : 'Get your family’s smog plan'}</h1>
-      <p className={styles['intro']}>
-        Your answers are saved on this device only. To write your plan they are sent to our server
-        and to Google Gemini, and neither keeps them.
-      </p>
-      {errors.length > 0 ? (
-        <div
-          ref={summary}
-          tabIndex={-1}
-          role="alert"
-          className={styles['errors']}
-          aria-labelledby="errors-title"
-        >
-          <h2 id="errors-title">
-            Please fix {errors.length === 1 ? 'one thing' : `${String(errors.length)} things`}
-          </h2>
-          <ul>
-            {errors.map((error) => (
-              <li key={error}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      <IntakeField onRead={readIntake} />
-      <PlaceField
-        place={draft.place}
-        onChange={(place) => {
-          setDraft({ ...draft, place });
-        }}
-      />
-      <MembersField
-        members={draft.members}
-        onChange={(members) => {
-          setDraft({ ...draft, members });
-        }}
-      />
-      <LifestyleFields draft={draft} onChange={setDraft} />
-      <label className={['field', styles['narrow']].join(' ')}>
-        Language for explanations
-        <select
-          value={draft.language}
-          onChange={(event) => {
-            setDraft({ ...draft, language: pickOption(LANGUAGES, event.target.value) });
+    <InvalidFields value={invalid}>
+      <form className={styles['form']} onSubmit={submit} noValidate aria-labelledby="setup-title">
+        <h1 id="setup-title">{initial ? 'Change your details' : 'Get your family’s smog plan'}</h1>
+        <p className={styles['intro']}>
+          Your answers are saved on this device only. To write your plan they are sent to our server
+          and to Google Gemini, and neither keeps them.
+        </p>
+        {errors.length > 0 ? (
+          <div
+            ref={summary}
+            tabIndex={-1}
+            role="alert"
+            className={styles['errors']}
+            aria-labelledby="errors-title"
+          >
+            <h2 id="errors-title">
+              Please fix {errors.length === 1 ? 'one thing' : `${String(errors.length)} things`}
+            </h2>
+            <ul>
+              {errors.map((error) => (
+                <li key={error.message}>
+                  <a
+                    href={`#${fieldId(error.field)}`}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      document.getElementById(fieldId(error.field))?.focus();
+                    }}
+                  >
+                    {error.message}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        <IntakeField onRead={readIntake} />
+        <PlaceField
+          place={draft.place}
+          onChange={(place) => {
+            setDraft({ ...draft, place });
           }}
-        >
-          {LANGUAGES.map((language) => (
-            <option key={language} value={language}>
-              {language === 'en'
-                ? 'English'
-                : `${LANGUAGE_NAMES[language].native} (${LANGUAGE_NAMES[language].english})`}
-            </option>
-          ))}
-        </select>
-      </label>
-      <div className={styles['actions']}>
-        <button type="submit" className="button">
-          Show my plan
-        </button>
-        {onCancel ? (
-          <button type="button" className="button button-quiet" onClick={onCancel}>
-            Cancel
+        />
+        <MembersField
+          members={draft.members}
+          onChange={(members) => {
+            setDraft({ ...draft, members });
+          }}
+        />
+        <LifestyleFields draft={draft} onChange={setDraft} />
+        <label className={['field', styles['narrow']].join(' ')}>
+          Language for explanations
+          <select
+            value={draft.language}
+            onChange={(event) => {
+              setDraft({ ...draft, language: pickOption(LANGUAGES, event.target.value) });
+            }}
+          >
+            {LANGUAGES.map((language) => (
+              <option key={language} value={language}>
+                {language === 'en'
+                  ? 'English'
+                  : `${LANGUAGE_NAMES[language].native} (${LANGUAGE_NAMES[language].english})`}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className={styles['actions']}>
+          <button type="submit" className="button">
+            Show my plan
           </button>
-        ) : null}
-        {onForget ? (
-          <button type="button" className="button button-quiet" onClick={onForget}>
-            Forget my family
-          </button>
-        ) : null}
-      </div>
-    </form>
+          {onCancel ? (
+            <button type="button" className="button button-quiet" onClick={onCancel}>
+              Cancel
+            </button>
+          ) : null}
+          {onForget ? (
+            <button type="button" className="button button-quiet" onClick={onForget}>
+              Forget my family
+            </button>
+          ) : null}
+        </div>
+      </form>
+    </InvalidFields>
   );
 }

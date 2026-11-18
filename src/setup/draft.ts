@@ -54,9 +54,19 @@ const FIELD_LABELS: Readonly<Record<string, string>> = {
   members: 'family list',
 };
 
-/** Validates a draft. Returns the profile, or one message per problem. */
-export function checkDraft(draft: Draft): { profile: Profile } | { errors: string[] } {
-  if (!draft.place) return { errors: ['Choose your city, or use your current location.'] };
+/** One problem in the form, with the dotted path of the field it belongs to (`commute.km`). */
+export interface FieldError {
+  field: string;
+  message: string;
+}
+
+/** Validates a draft. Returns the profile, or one error per problem. */
+export function checkDraft(draft: Draft): { profile: Profile } | { errors: FieldError[] } {
+  if (!draft.place) {
+    return {
+      errors: [{ field: 'place', message: 'Choose your city, or use your current location.' }],
+    };
+  }
   const members = draft.members.map((member, index) => ({
     ...member,
     name: member.name.trim() === '' ? fallbackName(index) : member.name.trim(),
@@ -66,9 +76,12 @@ export function checkDraft(draft: Draft): { profile: Profile } | { errors: strin
   const errors = parsed.error.issues.map((issue) => {
     const section = FIELD_NAMES[String(issue.path[0])] ?? 'Your answers';
     const field = String(issue.path.at(-1));
-    return `${section}: check the ${FIELD_LABELS[field] ?? field} value.`;
+    return {
+      field: issue.path.join('.'),
+      message: `${section}: check the ${FIELD_LABELS[field] ?? field} value.`,
+    };
   });
-  return { errors: [...new Set(errors)] };
+  return { errors: [...new Map(errors.map((error) => [error.message, error])).values()] };
 }
 
 /** Keeps only the fields that have a value, so they can be spread over existing ones. */

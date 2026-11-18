@@ -27,7 +27,7 @@ async function choosePlace() {
 describe('checkDraft', () => {
   it('asks for a place first, names unnamed members, then reports problems by section', () => {
     expect(checkDraft(newDraft())).toEqual({
-      errors: ['Choose your city, or use your current location.'],
+      errors: [{ field: 'place', message: 'Choose your city, or use your current location.' }],
     });
     const draft = { ...newDraft(), place: makeProfile().place };
     const twoUnnamed = { ...draft, members: [newMember(0), newMember(1, 'child')] };
@@ -42,18 +42,23 @@ describe('checkDraft', () => {
       home: { ...draft.home, areaM2: 1 },
     };
     expect(checkDraft(broken)).toEqual({
-      errors: ['Commute: check the one-way distance value.', 'Home: check the room size value.'],
+      errors: [
+        { field: 'commute.km', message: 'Commute: check the one-way distance value.' },
+        { field: 'home.areaM2', message: 'Home: check the room size value.' },
+      ],
     });
     expect(checkDraft({ ...draft, members: [] })).toEqual({
-      errors: ['Family: check the family list value.'],
+      errors: [{ field: 'members', message: 'Family: check the family list value.' }],
     });
   });
 
   it('labels unknown sections generically', () => {
     const draft = { ...newDraft(), place: makeProfile().place, language: 'xx' } as never;
-    expect(checkDraft(draft)).toEqual({ errors: ['Language: check the language value.'] });
+    expect(checkDraft(draft)).toEqual({
+      errors: [{ field: 'language', message: 'Language: check the language value.' }],
+    });
     expect(checkDraft({ ...newDraft(), place: { name: '', lat: 0, lon: 0 } })).toEqual({
-      errors: ['Your answers: check the name value.'],
+      errors: [{ field: 'place.name', message: 'Your answers: check the name value.' }],
     });
   });
 });
@@ -96,6 +101,20 @@ describe('SetupForm', () => {
     await userEvent.clear(screen.getByLabelText('One-way distance (km)'));
     await userEvent.click(screen.getByRole('button', { name: 'Show my plan' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Please fix 2 things');
+    const roomSize = screen.getByLabelText('Main room size (m²)');
+    expect(roomSize).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText('Days a week')).not.toHaveAttribute('aria-invalid');
+    await userEvent.click(screen.getByRole('link', { name: 'Home: check the room size value.' }));
+    expect(roomSize).toHaveFocus();
+  });
+
+  it('marks the city search invalid until a place is chosen', async () => {
+    renderForm();
+    await userEvent.click(screen.getByRole('button', { name: 'Show my plan' }));
+    const city = screen.getByLabelText('City or town');
+    expect(city).toHaveAttribute('aria-invalid', 'true');
+    await userEvent.click(screen.getByRole('link', { name: /Choose your city/ }));
+    expect(city).toHaveFocus();
   });
 
   it('builds a full profile from every field', async () => {
@@ -144,10 +163,12 @@ describe('SetupForm', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: 'Remove Ravi' }));
     expect(screen.getAllByLabelText('Name')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Add a family member' })).toHaveFocus();
     expect(screen.queryByRole('button', { name: /Remove/ })).not.toBeInTheDocument();
     await userEvent.clear(screen.getByLabelText('Name'));
     for (let count = 1; count < 12; count += 1) {
       await userEvent.click(screen.getByRole('button', { name: 'Add a family member' }));
+      expect(screen.getAllByLabelText('Name').at(-1)).toHaveFocus();
     }
     expect(screen.queryByRole('button', { name: 'Add a family member' })).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Remove this person' })).toHaveLength(12);

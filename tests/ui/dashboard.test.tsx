@@ -180,7 +180,9 @@ describe('Dashboard with a saved family', () => {
     await openDashboard();
     await userEvent.click(screen.getByRole('button', { name: 'Change details' }));
     expect(screen.getByRole('heading', { name: 'Change your details' })).toBeInTheDocument();
+    expect(screen.getByRole('main')).toHaveFocus();
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('main')).toHaveFocus();
     await userEvent.click(screen.getByRole('button', { name: 'Change details' }));
     await userEvent.click(screen.getByRole('button', { name: 'Forget my family' }));
     expect(
