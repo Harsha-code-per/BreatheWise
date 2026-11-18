@@ -40,6 +40,21 @@ function link(gl: WebGLRenderingContext): WebGLProgram | null {
   return gl.getProgramParameter(program, gl.LINK_STATUS) ? program : null;
 }
 
+/** One triangle that covers the whole screen; the fragment shader paints every pixel. */
+const FULL_SCREEN_TRIANGLE = new Float32Array([-1, -1, 3, -1, -1, 3]);
+
+/** Uploads the triangle, binds the program and returns its uniform locations. */
+function prepare(gl: WebGLRenderingContext, program: WebGLProgram) {
+  gl.useProgram(program);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, FULL_SCREEN_TRIANGLE, gl.STATIC_DRAW);
+  const position = gl.getAttribLocation(program, 'a_position');
+  gl.enableVertexAttribArray(position);
+  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+  const at = (name: string) => gl.getUniformLocation(program, name);
+  return { res: at('u_res'), time: at('u_time'), clear: at('u_clear'), night: at('u_night') };
+}
+
 /** Sets up the sky on a canvas, or returns null if the device cannot render it. */
 export function createSkyRenderer(canvas: HTMLCanvasElement): SkyRenderer | null {
   const gl = canvas.getContext('webgl', {
@@ -49,19 +64,7 @@ export function createSkyRenderer(canvas: HTMLCanvasElement): SkyRenderer | null
   });
   const program = gl ? link(gl) : null;
   if (!gl || !program) return null;
-  gl.useProgram(program);
-  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  const position = gl.getAttribLocation(program, 'a_position');
-  gl.enableVertexAttribArray(position);
-  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-  const at = (name: string) => gl.getUniformLocation(program, name);
-  const uniforms = {
-    res: at('u_res'),
-    time: at('u_time'),
-    clear: at('u_clear'),
-    night: at('u_night'),
-  };
+  const uniforms = prepare(gl, program);
 
   return {
     draw(frame) {

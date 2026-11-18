@@ -35,25 +35,28 @@ function withoutTags(text: string): string {
   return text.replace(/[<>]/g, '');
 }
 
-/** The facts the AI may use, kept compact to save tokens. */
-export function factsFor(analysis: Analysis, profile: Profile): string {
-  const facts = JSON.stringify({
-    place: analysis.placeName,
+/** The air now and in the coming days, rounded as the interface shows it. */
+function airFacts(analysis: Analysis) {
+  return {
     now: {
       aqi: Math.round(analysis.current.aqi),
       pm25: Math.round(analysis.current.pm25),
       level: analysis.band.label,
     },
     smogTrappedNow: analysis.smogNow,
-    outlook: analysis.outlook.map((day) => ({
-      date: day.date,
-      peakAqi: day.peakAqi,
-      smogHours: day.smogHours,
-    })),
-    family: profile.members.map((member) => ({
-      name: member.name,
-      group: member.group,
-      sensitiveLungsOrHeart: member.respiratory,
+    outlook: analysis.outlook.map(({ date, peakAqi, smogHours }) => ({ date, peakAqi, smogHours })),
+  };
+}
+
+/** The facts the AI may use, kept compact to save tokens. */
+export function factsFor(analysis: Analysis, profile: Profile): string {
+  const facts = JSON.stringify({
+    place: analysis.placeName,
+    ...airFacts(analysis),
+    family: profile.members.map(({ name, group, respiratory }) => ({
+      name,
+      group,
+      sensitiveLungsOrHeart: respiratory,
     })),
     actions: allActions(analysis).map(({ id, title, detail, impact }) => ({
       id,

@@ -46,44 +46,57 @@ export interface AiService {
 /** Thrown inside the cache loader so engine fallbacks are never cached. */
 class NoAiResult extends Error {}
 
+/** What the briefing and answer paths share: the generator and a cache for its results. */
+interface Deps<T> {
+  generator: TextGenerator;
+  cache: TtlCache<T>;
+}
+
+async function briefingFor(
+  { generator, cache }: Deps<Briefing>,
+  profile: Profile,
+  air: AirSnapshot,
+): Promise<PlanResponse> {
+  const analysis = analyse(profile, air);
+  const facts = factsFor(analysis, profile);
+  const ids = new Set(allActions(analysis).map((action) => action.id));
+  const load = async () => {
+    const result = await generator.generate(briefingRequest(facts, profile.language));
+    return orNoResult(validBriefing(result?.text, facts, ids));
+  };
+  const { value, source } = await aiOrEngine(
+    () => cache.getOrLoad(keyOf(profile.language, facts), AI_TTL_MS, load),
+    () => engineBriefing(analysis),
+  );
+  return { briefing: value, source };
+}
+
+async function answerFor(
+  { generator, cache }: Deps<string>,
+  profile: Profile,
+  ask: { air: AirSnapshot; question: string },
+): Promise<AskResponse> {
+  const analysis = analyse(profile, ask.air);
+  const facts = factsFor(analysis, profile);
+  const load = async () => {
+    const result = await generator.generate(questionRequest(facts, ask.question, profile.language));
+    const text = result?.text;
+    return orNoResult(text && grounded(text, `${facts} ${ask.question}`) ? text : null);
+  };
+  const { value, source } = await aiOrEngine(
+    () => cache.getOrLoad(keyOf(profile.language, facts, ask.question), AI_TTL_MS, load),
+    () => engineAnswer(analysis, ask.question),
+  );
+  return { answer: value, source };
+}
+
 /** Creates the service around a text generator. */
 export function createAiService(generator: TextGenerator): AiService {
-  const briefings = new TtlCache<Briefing>(BRIEFING_CACHE_SIZE);
-  const answers = new TtlCache<string>(ANSWER_CACHE_SIZE);
-
+  const briefings = { generator, cache: new TtlCache<Briefing>(BRIEFING_CACHE_SIZE) };
+  const answers = { generator, cache: new TtlCache<string>(ANSWER_CACHE_SIZE) };
   return {
-    async briefing(profile, air) {
-      const analysis = analyse(profile, air);
-      const facts = factsFor(analysis, profile);
-      const ids = new Set(allActions(analysis).map((action) => action.id));
-      const { value, source } = await aiOrEngine(
-        () =>
-          briefings.getOrLoad(keyOf(profile.language, facts), AI_TTL_MS, async () => {
-            const result = await generator.generate(briefingRequest(facts, profile.language));
-            return orNoResult(validBriefing(result?.text, facts, ids));
-          }),
-        () => engineBriefing(analysis),
-      );
-      return { briefing: value, source };
-    },
-
-    async answer(profile, air, question) {
-      const analysis = analyse(profile, air);
-      const facts = factsFor(analysis, profile);
-      const { value, source } = await aiOrEngine(
-        () =>
-          answers.getOrLoad(keyOf(profile.language, facts, question), AI_TTL_MS, async () => {
-            const result = await generator.generate(
-              questionRequest(facts, question, profile.language),
-            );
-            const text = result?.text;
-            return orNoResult(text && grounded(text, `${facts} ${question}`) ? text : null);
-          }),
-        () => engineAnswer(analysis, question),
-      );
-      return { answer: value, source };
-    },
-
+    briefing: (profile, air) => briefingFor(briefings, profile, air),
+    answer: (profile, air, question) => answerFor(answers, profile, { air, question }),
     async intake(text) {
       const result = await generator.generate(intakeRequest(text));
       const parsed = intakeSchema.safeParse(parseJson(result?.text));

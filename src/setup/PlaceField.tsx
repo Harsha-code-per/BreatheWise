@@ -5,21 +5,23 @@ import { fieldId, useInvalid } from './fields.js';
 import { locateMe } from './locateMe.js';
 import styles from './setup.module.css';
 
-/** Finds the family's city by search, or by the browser's location with consent. */
-export function PlaceField({
-  place,
-  onChange,
-}: {
-  place: Place | null;
-  onChange: (place: Place) => void;
-}): ReactElement {
+/** Searches shorter than this match too many places to be useful. */
+const MIN_QUERY_LENGTH = 2;
+
+function searchMessage(found: readonly Place[]): string {
+  return found.length === 0
+    ? 'No places found. Try a nearby larger city.'
+    : `${String(found.length)} places found.`;
+}
+
+/** The search box's text, its results and status, and the two ways to find a place. */
+function usePlaceSearch(onChange: (place: Place) => void) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Place[]>([]);
   const [status, setStatus] = useState('');
-  const invalid = useInvalid('place');
 
   const search = async () => {
-    if (query.trim().length < 2) {
+    if (query.trim().length < MIN_QUERY_LENGTH) {
       setStatus('Type at least two letters of your city.');
       return;
     }
@@ -27,11 +29,7 @@ export function PlaceField({
     try {
       const found = await api.places(query.trim());
       setResults(found);
-      setStatus(
-        found.length === 0
-          ? 'No places found. Try a nearby larger city.'
-          : `${String(found.length)} places found.`,
-      );
+      setStatus(searchMessage(found));
     } catch (error) {
       setStatus(error instanceof RequestFailed ? error.message : 'Search failed. Try again.');
     }
@@ -46,7 +44,52 @@ export function PlaceField({
     }
     setStatus(found.message);
   };
+  const choose = (place: Place) => {
+    onChange(place);
+    setStatus(`Selected: ${place.name}.`);
+  };
+  return { query, setQuery, results, status, search, locate, choose };
+}
 
+/** The places a search found, as radio buttons. */
+function SearchResults({
+  results,
+  selected,
+  onChoose,
+}: {
+  results: readonly Place[];
+  selected: Place | null;
+  onChoose: (place: Place) => void;
+}): ReactElement {
+  return (
+    <div className={styles['results']} role="group" aria-label="Search results">
+      {results.map((result) => (
+        <label key={`${String(result.lat)},${String(result.lon)}`} className={styles['choice']}>
+          <input
+            type="radio"
+            name="place"
+            checked={selected?.lat === result.lat && selected.lon === result.lon}
+            onChange={() => {
+              onChoose(result);
+            }}
+          />
+          {result.name}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/** Finds the family's city by search, or by the browser's location with consent. */
+export function PlaceField({
+  place,
+  onChange,
+}: {
+  place: Place | null;
+  onChange: (place: Place) => void;
+}): ReactElement {
+  const { query, setQuery, results, status, search, locate, choose } = usePlaceSearch(onChange);
+  const invalid = useInvalid('place');
   return (
     <fieldset className={styles['group']}>
       <legend>Where do you live?</legend>
@@ -61,10 +104,9 @@ export function PlaceField({
               setQuery(event.target.value);
             }}
             onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                void search();
-              }
+              if (event.key !== 'Enter') return;
+              event.preventDefault();
+              void search();
             }}
             autoComplete="address-level2"
           />
@@ -80,22 +122,7 @@ export function PlaceField({
         {status || (place ? `Selected: ${place.name}.` : '')}
       </p>
       {results.length > 0 ? (
-        <div className={styles['results']} role="group" aria-label="Search results">
-          {results.map((result) => (
-            <label key={`${String(result.lat)},${String(result.lon)}`} className={styles['choice']}>
-              <input
-                type="radio"
-                name="place"
-                checked={place?.lat === result.lat && place.lon === result.lon}
-                onChange={() => {
-                  onChange(result);
-                  setStatus(`Selected: ${result.name}.`);
-                }}
-              />
-              {result.name}
-            </label>
-          ))}
-        </div>
+        <SearchResults results={results} selected={place} onChoose={choose} />
       ) : null}
     </fieldset>
   );

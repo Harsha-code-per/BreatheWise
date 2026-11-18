@@ -1,7 +1,8 @@
 /**
  * Human-readable labels for every option in the setup form.
  */
-import type { Member, Profile } from '../domain/schemas.js';
+import { LANGUAGE_NAMES } from '../domain/names.js';
+import { LANGUAGES, type Language, type Member, type Profile } from '../domain/schemas.js';
 
 /** Labels for mode options. */
 export const MODE_NAMES: Readonly<Record<Profile['commute']['mode'], string>> = {
@@ -35,3 +36,10 @@ export const GROUP_LABELS: Readonly<Record<Member['group'], string>> = {
   older: 'Over 65',
   pregnant: 'Pregnant',
 };
+/** Language options: English as is, the others in their own script with the English name after. */
+export const LANGUAGE_LABELS = Object.fromEntries(
+  LANGUAGES.map((language) => {
+    const { native, english } = LANGUAGE_NAMES[language];
+    return [language, language === 'en' ? english : `${native} (${english})`];
+  }),
+) as Readonly<Record<Language, string>>;

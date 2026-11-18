@@ -3,12 +3,8 @@ import { INTAKE_TEXT_MIN, type Intake } from '../domain/schemas.js';
 import { api, RequestFailed } from '../lib/api.js';
 import styles from './setup.module.css';
 
-/** Lets the family describe itself in a sentence; Gemini fills in the form below. */
-export function IntakeField({
-  onRead,
-}: {
-  onRead: (intake: Intake) => Promise<void>;
-}): ReactElement {
+/** The description, a status line and a pending flag; `read` sends it to Gemini. */
+function useIntake(onRead: (intake: Intake) => Promise<void>) {
   const [text, setText] = useState('');
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
@@ -24,16 +20,22 @@ export function IntakeField({
       await onRead(await api.intake(text.trim()));
       setStatus('Filled in from your description. Check the details below, then show your plan.');
     } catch (error) {
-      setStatus(
-        error instanceof RequestFailed
-          ? error.message
-          : 'Something went wrong. Fill in the form below.',
-      );
+      const known = error instanceof RequestFailed;
+      setStatus(known ? error.message : 'Something went wrong. Fill in the form below.');
     } finally {
       setBusy(false);
     }
   };
+  return { text, setText, status, busy, read };
+}
 
+/** Lets the family describe itself in a sentence; Gemini fills in the form below. */
+export function IntakeField({
+  onRead,
+}: {
+  onRead: (intake: Intake) => Promise<void>;
+}): ReactElement {
+  const { text, setText, status, busy, read } = useIntake(onRead);
   return (
     <section className={styles['intake']} aria-labelledby="intake-title">
       <h2 id="intake-title">Describe your family</h2>

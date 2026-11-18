@@ -26,6 +26,7 @@ const PLACE_TTL_MS = DAY_MS;
 const CACHE_SIZE = 500;
 const SEARCH_RESULTS = '6';
 const FORECAST_DAYS = '3';
+const AIR_VARIABLES = 'us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone';
 
 const series = z.array(z.number().nullable());
 const airPayload = z.object({
@@ -64,6 +65,30 @@ function at(values: readonly (number | null)[], index: number): number | null {
   return values[index] ?? null;
 }
 
+/**
+ * Joins the two feeds by hour. Hours missing AQI, PM2.5 or PM10 are dropped; the optional
+ * pollutants and the boundary-layer height may be null.
+ */
+function mergeHours(
+  air: z.infer<typeof airPayload>,
+  weather: z.infer<typeof weatherPayload>,
+): AirHour[] {
+  const blhByTime = new Map(
+    weather.hourly.time.map((time, i) => [time, at(weather.hourly.boundary_layer_height, i)]),
+  );
+  const { hourly } = air;
+  return hourly.time.flatMap((time, i): AirHour[] => {
+    const [aqi, pm25, pm10] = [at(hourly.us_aqi, i), at(hourly.pm2_5, i), at(hourly.pm10, i)];
+    if (aqi === null || pm25 === null || pm10 === null) return [];
+    const extra = {
+      no2: at(hourly.nitrogen_dioxide, i),
+      o3: at(hourly.ozone, i),
+      blh: blhByTime.get(time) ?? null,
+    };
+    return [{ time, aqi, pm25, pm10, ...extra }];
+  });
+}
+
 /** Hourly air quality with boundary-layer height for a place, cached for 15 minutes. */
 export async function fetchAir(place: Place): Promise<AirSnapshot> {
   const lat = place.lat.toFixed(2);
@@ -71,27 +96,11 @@ export async function fetchAir(place: Place): Promise<AirSnapshot> {
   return airCache.getOrLoad(`${lat},${lon}`, AIR_TTL_MS, async () => {
     const common = `latitude=${lat}&longitude=${lon}&timezone=auto&forecast_days=${FORECAST_DAYS}`;
     const [air, weather] = await Promise.all([
-      getJson(
-        `${AIR_URL}?${common}&current=us_aqi&hourly=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone`,
-        airPayload,
-      ),
+      getJson(`${AIR_URL}?${common}&current=us_aqi&hourly=${AIR_VARIABLES}`, airPayload),
       getJson(`${WEATHER_URL}?${common}&hourly=boundary_layer_height`, weatherPayload),
     ]);
-    const blhByTime = new Map(
-      weather.hourly.time.map((time, i) => [time, at(weather.hourly.boundary_layer_height, i)]),
-    );
-    const { hourly } = air;
-    const hours = hourly.time.flatMap((time, i): AirHour[] => {
-      const [aqi, pm25, pm10] = [at(hourly.us_aqi, i), at(hourly.pm2_5, i), at(hourly.pm10, i)];
-      if (aqi === null || pm25 === null || pm10 === null) return [];
-      const extra = {
-        no2: at(hourly.nitrogen_dioxide, i),
-        o3: at(hourly.ozone, i),
-        blh: blhByTime.get(time) ?? null,
-      };
-      return [{ time, aqi, pm25, pm10, ...extra }];
-    });
     const now = startOfHour(air.current.time);
+    const hours = mergeHours(air, weather);
     const snapshot = airSnapshotSchema.safeParse({ place, timezone: air.timezone, now, hours });
     if (!snapshot.success) throw new ApiError('UPSTREAM_UNAVAILABLE');
     return snapshot.data;

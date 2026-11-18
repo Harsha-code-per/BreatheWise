@@ -15,17 +15,12 @@ export interface TabSpec {
   panel: ReactNode;
 }
 
-/**
- * WAI-ARIA tabs with roving focus: Left/Right/Home/End move between tabs, and only the
- * selected tab is in the Tab order.
- */
-export function Tabs({ tabs, label }: { tabs: readonly TabSpec[]; label: string }): ReactElement {
+/** Selected index, button refs and keyboard handling for a roving-focus tab list. */
+function useRovingTabs(count: number) {
   const [selected, setSelected] = useState(0);
-  const prefix = useId();
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
-
   const select = (index: number) => {
-    const next = (index + tabs.length) % tabs.length;
+    const next = (index + count) % count;
     setSelected(next);
     buttons.current[next]?.focus();
   };
@@ -34,13 +29,23 @@ export function Tabs({ tabs, label }: { tabs: readonly TabSpec[]; label: string 
       ArrowRight: selected + 1,
       ArrowLeft: selected - 1,
       Home: 0,
-      End: tabs.length - 1,
+      End: count - 1,
     };
     const target = moves[event.key];
     if (target === undefined) return;
     event.preventDefault();
     select(target);
   };
+  return { selected, buttons, select, onKeyDown };
+}
+
+/**
+ * WAI-ARIA tabs with roving focus: Left/Right/Home/End move between tabs, and only the
+ * selected tab is in the Tab order.
+ */
+export function Tabs({ tabs, label }: { tabs: readonly TabSpec[]; label: string }): ReactElement {
+  const { selected, buttons, select, onKeyDown } = useRovingTabs(tabs.length);
+  const prefix = useId();
 
   return (
     <div className={styles['tabs']}>

@@ -13,6 +13,35 @@ const LABEL_EVERY_HOURS = 6;
 /** Hours shown in the strip. */
 const HOURS_SHOWN = 24;
 
+/** The same hours as a table, for screen readers and anyone who prefers numbers. */
+function HourTable({ hours }: { hours: readonly AirHour[] }): ReactElement {
+  return (
+    <details>
+      <summary>Show as a table</summary>
+      <table className={styles['table']}>
+        <thead>
+          <tr>
+            <th scope="col">Time</th>
+            <th scope="col">PM2.5 (µg/m³)</th>
+            <th scope="col">AQI</th>
+            <th scope="col">Inversion</th>
+          </tr>
+        </thead>
+        <tbody>
+          {hours.map((hour) => (
+            <tr key={hour.time}>
+              <th scope="row">{formatHour(hourOf(hour.time))}</th>
+              <td>{Math.round(hour.pm25)}</td>
+              <td>{Math.round(hour.aqi)}</td>
+              <td>{isTrapped(hour) ? 'Yes' : 'No'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
+  );
+}
+
 /** The next day's PM2.5 hour by hour, with inversion hours marked, plus the same data as a table. */
 export function HourlyChart({
   hours,
@@ -45,29 +74,7 @@ export function HourlyChart({
           </li>
         ))}
       </ol>
-      <details>
-        <summary>Show as a table</summary>
-        <table className={styles['table']}>
-          <thead>
-            <tr>
-              <th scope="col">Time</th>
-              <th scope="col">PM2.5 (µg/m³)</th>
-              <th scope="col">AQI</th>
-              <th scope="col">Inversion</th>
-            </tr>
-          </thead>
-          <tbody>
-            {upcoming.map((hour) => (
-              <tr key={hour.time}>
-                <th scope="row">{formatHour(hourOf(hour.time))}</th>
-                <td>{Math.round(hour.pm25)}</td>
-                <td>{Math.round(hour.aqi)}</td>
-                <td>{isTrapped(hour) ? 'Yes' : 'No'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </details>
+      <HourTable hours={upcoming} />
     </figure>
   );
 }

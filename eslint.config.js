@@ -51,6 +51,19 @@ export default tseslint.config(
     },
   },
   {
+    // Short functions: logic fits on one screen, and a component's markup on about two.
+    files: ['src/**/*.ts', 'api/**/*.ts'],
+    rules: {
+      'max-lines-per-function': ['error', { max: 30, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
+    files: ['src/**/*.tsx'],
+    rules: {
+      'max-lines-per-function': ['error', { max: 50, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
     // Logic names its numbers. Exempt: zod schemas, whose bounds are the declaration itself,
     // and the landing's drawing coordinates.
     files: ['src/**/*.{ts,tsx}', 'api/**/*.ts'],

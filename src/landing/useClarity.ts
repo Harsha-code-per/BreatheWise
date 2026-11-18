@@ -24,6 +24,13 @@ export function easeOut(t: number): number {
   return 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
 }
 
+/** Clarity `elapsed` ms after load: the entrance so far, or the scroll position if further. */
+function clarityNow(root: HTMLElement, elapsed: number): number {
+  const scrollable = Math.max(1, root.scrollHeight - window.innerHeight);
+  const intro = INTRO_CLARITY * easeOut(elapsed / INTRO_MS);
+  return Math.max(intro, window.scrollY > 0 ? clarityAt(window.scrollY / scrollable) : 0);
+}
+
 /** Tracks clarity for the element in `rootRef`, exposing it as `--clarity` on that element. */
 export function useClarity(rootRef: RefObject<HTMLElement | null>): RefObject<number> {
   const clarity = useRef(0);
@@ -36,12 +43,7 @@ export function useClarity(rootRef: RefObject<HTMLElement | null>): RefObject<nu
     let frame = 0;
 
     const update = (now: number) => {
-      const scrollable = Math.max(1, root.scrollHeight - window.innerHeight);
-      const intro = calm ? INTRO_CLARITY : INTRO_CLARITY * easeOut((now - started) / INTRO_MS);
-      const value = Math.max(
-        intro,
-        window.scrollY > 0 ? clarityAt(window.scrollY / scrollable) : 0,
-      );
+      const value = clarityNow(root, calm ? INTRO_MS : now - started);
       clarity.current = value;
       root.style.setProperty('--clarity', value.toFixed(3));
       window.dispatchEvent(new Event(CLARITY_EVENT));

@@ -91,15 +91,20 @@ function present<T extends object>(fields: T): { [K in keyof T]?: Exclude<T[K], 
   };
 }
 
-/** Merges fields read from a description into the draft, leaving everything else as it was. */
-export function applyIntake(draft: Draft, intake: Intake): Draft {
+/** The household members the description named, with ids; none keeps the draft's own. */
+function membersFrom(draft: Draft, intake: Intake): Draft['members'] {
   const members = (intake.members ?? []).map((member, index) => ({
     ...member,
     id: `member-${String(index)}`,
   }));
+  return members.length > 0 ? members : draft.members;
+}
+
+/** Merges fields read from a description into the draft, leaving everything else as it was. */
+export function applyIntake(draft: Draft, intake: Intake): Draft {
   return {
     ...draft,
-    members: members.length > 0 ? members : draft.members,
+    members: membersFrom(draft, intake),
     commute: {
       ...draft.commute,
       ...present({

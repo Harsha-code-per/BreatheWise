@@ -1,9 +1,12 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { z } from 'zod';
 
 z.config({ jitless: true });
+
+// The default 1 s wait for async UI is too tight when the whole suite runs in parallel under coverage.
+configure({ asyncUtilTimeout: 3000 });
 
 // Tests never call real AI providers, whatever the developer's environment holds.
 for (const key of ['GEMINI_API_KEY', 'FALLBACK_AI_URL', 'FALLBACK_AI_KEY', 'FALLBACK_AI_MODEL']) {

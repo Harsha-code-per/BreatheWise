@@ -4,11 +4,11 @@
  */
 import { listNames, NO_IMPACT, type Action, type PlanContext } from './action.js';
 import { levelRank } from './aqi.js';
-import { cigarettes, inhaledDose, percentLess } from './exposure.js';
+import { inhaledDose, percentLess, weeklyCigarettes } from './exposure.js';
 import { SMOG_PM25, trappedRuns } from './smog.js';
 import { formatHour, hourOf } from './time.js';
 import { windowRange, worstWindow, type AirWindow } from './windows.js';
-import { DAYS_PER_WEEK, MINUTES_PER_HOUR, round1 } from './units.js';
+import { MINUTES_PER_HOUR } from './units.js';
 
 /** Last hour at which an outdoor workout or airing may start. */
 const OUTDOOR_UNTIL = 20;
@@ -48,23 +48,19 @@ function exercise(ctx: PlanContext): Timed | null {
   const { best, worst } = range;
   const hours = minutes / MINUTES_PER_HOUR;
   const tooDirty = best.meanPm25 >= SMOG_PM25;
+  const dose = (stretch: AirWindow) => inhaledDose(stretch.meanPm25, hours, 'moderate');
   return {
     id: 'exercise-window',
     kind: 'routine',
     title: tooDirty ? 'Move your workout indoors today' : `Exercise between ${span(best)}`,
     detail: tooDirty
-      ? `Even the cleanest hour outside has ${Math.round(best.meanPm25)} µg/m³ of PM2.5. Hard breathing pulls in four times more of it, so train indoors with the windows shut.`
-      : `This is the cleanest stretch of the day (${Math.round(best.meanPm25)} µg/m³ of PM2.5, against ${Math.round(worst.meanPm25)} at the worst time).`,
+      ? `Even the cleanest hour outside has ${String(Math.round(best.meanPm25))} µg/m³ of PM2.5. Hard breathing pulls in four times more of it, so train indoors with the windows shut.`
+      : `This is the cleanest stretch of the day (${String(Math.round(best.meanPm25))} µg/m³ of PM2.5, against ${String(Math.round(worst.meanPm25))} at the worst time).`,
     when: formatHour(best.startHour),
     impact: {
       ...NO_IMPACT,
-      exposureCut: tooDirty
-        ? null
-        : percentLess(
-            inhaledDose(worst.meanPm25, hours, 'moderate'),
-            inhaledDose(best.meanPm25, hours, 'moderate'),
-          ),
-      cigarettesWeek: round1(cigarettes(worst.meanPm25 - best.meanPm25, hours) * DAYS_PER_WEEK),
+      exposureCut: tooDirty ? null : percentLess(dose(worst), dose(best)),
+      cigarettesWeek: weeklyCigarettes(worst.meanPm25 - best.meanPm25, hours),
     },
   };
 }

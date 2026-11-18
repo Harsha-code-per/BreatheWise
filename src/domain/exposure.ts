@@ -2,7 +2,7 @@
  * Exposure arithmetic. What reaches the lungs scales with concentration × time ×
  * breathing rate, so moving an activity to a cleaner hour or a calmer effort cuts the dose.
  */
-import { HOURS_PER_DAY } from './units.js';
+import { DAYS_PER_WEEK, HOURS_PER_DAY, round1 } from './units.js';
 
 /**
  * Breathing rate relative to rest. The EPA Exposure Factors Handbook (2011, ch. 6)
@@ -27,6 +27,11 @@ export function inhaledDose(pm25: number, hours: number, effort: Effort): number
 /** Cigarettes-equivalent of breathing a PM2.5 concentration for some hours. */
 export function cigarettes(pm25: number, hours: number): number {
   return (pm25 * hours) / CIGARETTE_UG_HOURS;
+}
+
+/** Cigarettes-equivalent avoided in a week by breathing `pm25Drop` less for `hoursPerDay`. */
+export function weeklyCigarettes(pm25Drop: number, hoursPerDay: number): number {
+  return round1(cigarettes(pm25Drop, hoursPerDay) * DAYS_PER_WEEK);
 }
 
 /** Whole-number percentage by which `after` is lower than `before` (negative if higher). */

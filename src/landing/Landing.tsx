@@ -19,6 +19,38 @@ function StartLink({ children }: { children: string }) {
   );
 }
 
+/** The opening screen: the promise and the way in. */
+function Hero(): ReactElement {
+  return (
+    <section className={styles['hero']} aria-labelledby="hero-title">
+      <h1 id="hero-title" className={styles['headline']}>
+        Clear the air.
+      </h1>
+      <p className={styles['lead']}>
+        BreatheWise reads the smog forecast for your street and plans your family’s day around it:
+        when to go out, when to shut the windows, and what each choice saves.
+      </p>
+      <StartLink>Check my air</StartLink>
+      <p className={styles['scrollHint']} aria-hidden="true">
+        Scroll to lift the smog
+      </p>
+    </section>
+  );
+}
+
+/** The closing screen, once the smog has lifted. */
+function Finale(): ReactElement {
+  return (
+    <section className={styles['finale']} aria-labelledby="finale-title">
+      <div className={styles['pane']}>
+        <h2 id="finale-title">Breathe easier tonight.</h2>
+        <p>Free, with no sign-up or account. Nothing about your family is stored on our servers.</p>
+        <StartLink>Check my air</StartLink>
+      </div>
+    </section>
+  );
+}
+
 /** The landing page: a scroll story in which the city's smog lifts as you read. */
 export function Landing(): ReactElement {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -40,29 +72,9 @@ export function Landing(): ReactElement {
         </div>
       </header>
       <main id="main" ref={mainRef} tabIndex={-1}>
-        <section className={styles['hero']} aria-labelledby="hero-title">
-          <h1 id="hero-title" className={styles['headline']}>
-            Clear the air.
-          </h1>
-          <p className={styles['lead']}>
-            BreatheWise reads the smog forecast for your street and plans your family’s day around
-            it: when to go out, when to shut the windows, and what each choice saves.
-          </p>
-          <StartLink>Check my air</StartLink>
-          <p className={styles['scrollHint']} aria-hidden="true">
-            Scroll to lift the smog
-          </p>
-        </section>
+        <Hero />
         <Story />
-        <section className={styles['finale']} aria-labelledby="finale-title">
-          <div className={styles['pane']}>
-            <h2 id="finale-title">Breathe easier tonight.</h2>
-            <p>
-              Free, with no sign-up or account. Nothing about your family is stored on our servers.
-            </p>
-            <StartLink>Check my air</StartLink>
-          </div>
-        </section>
+        <Finale />
       </main>
       <footer className={styles['footer']}>
         <p>
