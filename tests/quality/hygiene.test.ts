@@ -57,6 +57,11 @@ describe('repository hygiene', () => {
       'LICENSE',
       '.env.example',
       'docs/ARCHITECTURE.md',
+      'CODE_QUALITY.md',
+      'EFFICIENCY.md',
+      'TESTING.md',
+      'ACCESSIBILITY.md',
+      'PROBLEM_ALIGNMENT.md',
     ]) {
       expect(() => read(doc), doc).not.toThrow();
     }
