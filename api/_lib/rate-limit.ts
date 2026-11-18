@@ -3,6 +3,8 @@
  * upstream quotas from bursts; on serverless hosts each warm instance keeps its own window.
  */
 
+import { MS_PER_SECOND } from '../../src/domain/units.js';
+
 /** At most `limit` requests per `windowMs` for one client. */
 export interface RateRule {
   limit: number;
@@ -34,7 +36,7 @@ export class RateLimiter {
       this.hits.set(key, recent);
       return {
         allowed: false,
-        retryAfterSeconds: Math.ceil((oldest + rule.windowMs - now) / 1000),
+        retryAfterSeconds: Math.ceil((oldest + rule.windowMs - now) / MS_PER_SECOND),
       };
     }
     this.hits.set(key, [...recent, now]);

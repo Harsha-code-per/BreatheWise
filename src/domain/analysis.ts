@@ -14,6 +14,7 @@ import { dailyOutlook, isSmog, type DayOutlook } from './smog.js';
 import { shortPlaceName } from './names.js';
 import { switchActions } from './switches.js';
 import { dayOf } from './time.js';
+import { round1 } from './units.js';
 
 /**
  * Weekly totals. Smoke avoided adds up across routine and indoor actions, which happen at
@@ -76,7 +77,7 @@ function totalsOf(personal: readonly Action[], footprint: readonly Action[]): To
   const cuts = [...personal, ...footprint].map((action) => action.impact.exposureCut ?? 0);
   return {
     bestCo2KgWeek: Math.max(0, ...footprint.map((action) => action.impact.co2KgWeek ?? 0)),
-    cigarettesWeek: Math.round(smoke * 10) / 10,
+    cigarettesWeek: round1(smoke),
     topExposureCut: Math.max(0, ...cuts),
   };
 }

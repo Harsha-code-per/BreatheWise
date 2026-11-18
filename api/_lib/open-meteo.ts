@@ -9,6 +9,9 @@ import {
   type AirSnapshot,
   type Place,
 } from '../../src/domain/schemas.js';
+import { placeName } from '../../src/domain/names.js';
+import { startOfHour } from '../../src/domain/time.js';
+import { DAY_MS, MINUTE_MS } from '../../src/domain/units.js';
 import { TtlCache } from './cache.js';
 import { ApiError } from './errors.js';
 import { getJson } from './upstream.js';
@@ -16,7 +19,12 @@ import { getJson } from './upstream.js';
 const AIR_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 const WEATHER_URL = 'https://api.open-meteo.com/v1/forecast';
 const GEOCODE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
-const AIR_TTL_MS = 15 * 60_000;
+/** CAMS updates hourly; a quarter hour keeps the forecast fresh without repeat calls. */
+const AIR_TTL_MINUTES = 15;
+const AIR_TTL_MS = AIR_TTL_MINUTES * MINUTE_MS;
+const PLACE_TTL_MS = DAY_MS;
+const CACHE_SIZE = 500;
+const SEARCH_RESULTS = '6';
 const FORECAST_DAYS = '3';
 
 const series = z.array(z.number().nullable());
@@ -49,8 +57,8 @@ const geocodePayload = z.object({
     .optional(),
 });
 
-const airCache = new TtlCache<AirSnapshot>(500);
-const placeCache = new TtlCache<Place[]>(500);
+const airCache = new TtlCache<AirSnapshot>(CACHE_SIZE);
+const placeCache = new TtlCache<Place[]>(CACHE_SIZE);
 
 function at(values: readonly (number | null)[], index: number): number | null {
   return values[index] ?? null;
@@ -83,7 +91,7 @@ export async function fetchAir(place: Place): Promise<AirSnapshot> {
       };
       return [{ time, aqi, pm25, pm10, ...extra }];
     });
-    const now = `${air.current.time.slice(0, 13)}:00`;
+    const now = startOfHour(air.current.time);
     const snapshot = airSnapshotSchema.safeParse({ place, timezone: air.timezone, now, hours });
     if (!snapshot.success) throw new ApiError('UPSTREAM_UNAVAILABLE');
     return snapshot.data;
@@ -93,11 +101,16 @@ export async function fetchAir(place: Place): Promise<AirSnapshot> {
 /** Up to six places matching a search, cached for a day. */
 export async function searchPlaces(query: string): Promise<Place[]> {
   const key = query.toLowerCase();
-  return placeCache.getOrLoad(key, 24 * 60 * 60_000, async () => {
-    const params = new URLSearchParams({ name: query, count: '6', language: 'en', format: 'json' });
+  return placeCache.getOrLoad(key, PLACE_TTL_MS, async () => {
+    const params = new URLSearchParams({
+      name: query,
+      count: SEARCH_RESULTS,
+      language: 'en',
+      format: 'json',
+    });
     const { results = [] } = await getJson(`${GEOCODE_URL}?${params.toString()}`, geocodePayload);
     return results.map((result) => ({
-      name: [result.name, result.admin1, result.country].filter(Boolean).join(', ').slice(0, 80),
+      name: placeName([result.name, result.admin1, result.country]),
       lat: result.latitude,
       lon: result.longitude,
     }));

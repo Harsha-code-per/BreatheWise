@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from 'react';
-import type { Intake } from '../domain/schemas.js';
+import { INTAKE_TEXT_MIN, type Intake } from '../domain/schemas.js';
 import { api, RequestFailed } from '../lib/api.js';
 import styles from './setup.module.css';
 
@@ -14,7 +14,7 @@ export function IntakeField({
   const [busy, setBusy] = useState(false);
 
   const read = async () => {
-    if (text.trim().length < 3) {
+    if (text.trim().length < INTAKE_TEXT_MIN) {
       setStatus('Write a sentence or two about your family first.');
       return;
     }

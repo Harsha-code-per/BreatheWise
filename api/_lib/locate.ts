@@ -4,7 +4,9 @@
  * approximate city Vercel derives from the network is used instead.
  */
 import { z } from 'zod';
+import { placeName } from '../../src/domain/names.js';
 import type { Place } from '../../src/domain/schemas.js';
+import { DAY_MS, DAYS_PER_WEEK } from '../../src/domain/units.js';
 import { TtlCache } from './cache.js';
 import { ApiError } from './errors.js';
 import { getJson } from './upstream.js';
@@ -12,7 +14,9 @@ import { getJson } from './upstream.js';
 const REVERSE_URL = 'https://nominatim.openstreetmap.org/reverse';
 /** Nominatim asks every application to identify itself. */
 const USER_AGENT = 'BreatheWise/1.0 (+https://breathewise-six.vercel.app)';
-const NAME_TTL_MS = 7 * 24 * 60 * 60_000;
+/** Place names do not change; a week keeps repeat visits off Nominatim's free service. */
+const NAME_TTL_MS = DAYS_PER_WEEK * DAY_MS;
+const NAME_CACHE_SIZE = 1000;
 
 const reversePayload = z.object({
   address: z
@@ -29,7 +33,7 @@ const reversePayload = z.object({
     .optional(),
 });
 
-const names = new TtlCache<string>(1000);
+const names = new TtlCache<string>(NAME_CACHE_SIZE);
 
 /** Rounds to two decimals (about 1 km), so nothing more precise is ever stored or sent on. */
 function coarse(value: number): number {
@@ -52,8 +56,9 @@ export async function placeAt(lat: number, lon: number): Promise<Place> {
     });
     const local =
       address.city ?? address.town ?? address.village ?? address.suburb ?? address.county;
-    const parts = [local, address.state, address.country].filter(Boolean);
-    return parts.length > 0 ? parts.join(', ').slice(0, 80) : `Near ${String(la)}, ${String(lo)}`;
+    return (
+      placeName([local, address.state, address.country]) || `Near ${String(la)}, ${String(lo)}`
+    );
   });
   return { name, lat: la, lon: lo };
 }

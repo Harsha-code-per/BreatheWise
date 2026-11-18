@@ -8,6 +8,9 @@ import { geminiProviders } from './gemini.js';
 import { compatibleProvider } from './openai-compatible.js';
 import type { Provider } from './provider.js';
 
+/** Calls a day across all models, inside the free tier's combined request quota. */
+const DEFAULT_DAILY_BUDGET = 900;
+
 /** Each provider gets this long before the cascade moves on. */
 const PROVIDER_TIMEOUT_MS = 9_000;
 /** All providers together get this long, leaving headroom inside the 30 s function limit. */
@@ -23,7 +26,7 @@ const envSchema = z.object({
   FALLBACK_AI_MODEL: optional,
   AI_DAILY_BUDGET: z.preprocess(
     (value) => (value === '' ? undefined : value),
-    z.coerce.number().int().positive().default(900),
+    z.coerce.number().int().positive().default(DEFAULT_DAILY_BUDGET),
   ),
 });
 

@@ -2,10 +2,13 @@
  * Google Gemini providers (one per model) via the official @google/genai SDK.
  */
 import { GoogleGenAI } from '@google/genai';
-import { ProviderError, type AiRequest, type Provider } from './provider.js';
-
-/** Low temperature keeps advice consistent while still reading naturally. */
-const TEMPERATURE = 0.4;
+import {
+  HTTP_STATUS,
+  ProviderError,
+  TEMPERATURE,
+  type AiRequest,
+  type Provider,
+} from './provider.js';
 
 /** Creates one provider per Gemini model, sharing a single client. */
 export function geminiProviders(apiKey: string, models: readonly string[]): Provider[] {
@@ -28,7 +31,7 @@ export function geminiProviders(apiKey: string, models: readonly string[]): Prov
         },
       });
       const text = response.text?.trim();
-      if (!text) throw new ProviderError(502);
+      if (!text) throw new ProviderError(HTTP_STATUS.badGateway);
       return text;
     },
   }));

@@ -2,9 +2,10 @@
  * Community actions: smog is shared, so the biggest wins come from neighbours acting together.
  */
 import { NO_IMPACT, type Action, type PlanContext } from './action.js';
-import { CO2_PER_KM } from './commute.js';
+import { CO2_PER_KM, weeklyKm } from './commute.js';
 import { formatHour } from './time.js';
 import { cleanestWindow } from './windows.js';
+import { round1 } from './units.js';
 
 /** Morning hours in which a school run usually happens. */
 const SCHOOL_RUN = { fromHour: 6, toHour: 10 } as const;
@@ -56,7 +57,7 @@ function sharedFilter(): Action {
 function carpool(ctx: PlanContext): Action | null {
   const { mode, km, daysPerWeek } = ctx.profile.commute;
   if (mode !== 'car' || km === 0 || daysPerWeek === 0) return null;
-  const saved = km * 2 * daysPerWeek * (CO2_PER_KM.car - CO2_PER_KM.carpool);
+  const saved = weeklyKm(ctx.profile.commute) * (CO2_PER_KM.car - CO2_PER_KM.carpool);
   return {
     id: 'neighbour-carpool',
     kind: 'community',
@@ -64,6 +65,6 @@ function carpool(ctx: PlanContext): Action | null {
     detail:
       'Two people in one car halve each person’s commute emissions and the traffic at the school gate.',
     when: null,
-    impact: { ...NO_IMPACT, co2KgWeek: Math.round(saved * 10) / 10 },
+    impact: { ...NO_IMPACT, co2KgWeek: round1(saved) },
   };
 }

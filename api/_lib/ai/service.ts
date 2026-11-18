@@ -17,6 +17,7 @@ import {
   type PlanResponse,
   type Profile,
 } from '../../../src/domain/schemas.js';
+import { MINUTE_MS } from '../../../src/domain/units.js';
 import { TtlCache } from '../cache.js';
 import { ApiError } from '../errors.js';
 import type { CascadeResult } from './cascade.js';
@@ -24,7 +25,11 @@ import { briefingRequest, factsFor, grounded, intakeRequest, questionRequest } f
 import type { AiRequest } from './provider.js';
 
 /** AI results are reused for half an hour; the forecast they explain changes hourly at most. */
-const AI_TTL_MS = 30 * 60_000;
+const AI_TTL_MINUTES = 30;
+const AI_TTL_MS = AI_TTL_MINUTES * MINUTE_MS;
+/** Distinct briefings and answers kept per warm instance. */
+const BRIEFING_CACHE_SIZE = 300;
+const ANSWER_CACHE_SIZE = 500;
 
 /** Anything that can generate text, normally the provider cascade. */
 export interface TextGenerator {
@@ -43,8 +48,8 @@ class NoAiResult extends Error {}
 
 /** Creates the service around a text generator. */
 export function createAiService(generator: TextGenerator): AiService {
-  const briefings = new TtlCache<Briefing>(300);
-  const answers = new TtlCache<string>(500);
+  const briefings = new TtlCache<Briefing>(BRIEFING_CACHE_SIZE);
+  const answers = new TtlCache<string>(ANSWER_CACHE_SIZE);
 
   return {
     async briefing(profile, air) {

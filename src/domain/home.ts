@@ -2,7 +2,7 @@
  * Indoor air quality hacks, each scored with the mass-balance model in `indoor.ts`.
  */
 import { NO_IMPACT, type Action, type PlanContext } from './action.js';
-import { cigarettes, percentLess, round1 } from './exposure.js';
+import { cigarettes, percentLess } from './exposure.js';
 import {
   cadrFor,
   COOKING_HOURS,
@@ -11,6 +11,7 @@ import {
   HOME_AIR,
   indoorPm25,
 } from './indoor.js';
+import { DAYS_PER_WEEK, round1 } from './units.js';
 
 /** Hours a typical family member spends at home on a smoggy winter day. */
 const HOURS_INDOORS = 20;
@@ -55,7 +56,7 @@ function filtration(ctx: PlanContext): Action {
     impact: {
       ...NO_IMPACT,
       exposureCut: percentLess(before, after),
-      cigarettesWeek: round1(cigarettes(before - after, HOURS_INDOORS) * 7),
+      cigarettesWeek: round1(cigarettes(before - after, HOURS_INDOORS) * DAYS_PER_WEEK),
     },
   };
 }
@@ -83,7 +84,7 @@ function cooking(ctx: PlanContext): Action | null {
     impact: {
       ...NO_IMPACT,
       exposureCut: percentLess(before, after),
-      cigarettesWeek: round1(cigarettes(before - after, COOKING_HOURS) * 7),
+      cigarettesWeek: round1(cigarettes(before - after, COOKING_HOURS) * DAYS_PER_WEEK),
     },
   };
 }

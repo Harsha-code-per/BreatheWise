@@ -3,6 +3,7 @@
  * personal actions; ways of commuting are alternatives, so only one can be chosen at a time.
  */
 import type { Action } from './action.js';
+import { round1 } from './units.js';
 
 /** Combined weekly effect of the chosen actions. */
 export interface ChoiceImpact {
@@ -27,8 +28,7 @@ export function toggleChoice(chosen: readonly string[], id: string): string[] {
 export function choiceImpact(actions: readonly Action[], chosen: readonly string[]): ChoiceImpact {
   const picked = actions.filter((action) => chosen.includes(action.id));
   const sum = (pick: (action: Action) => number | null) =>
-    Math.round(picked.reduce((total, action) => total + Math.max(0, pick(action) ?? 0), 0) * 10) /
-    10;
+    round1(picked.reduce((total, action) => total + Math.max(0, pick(action) ?? 0), 0));
   return {
     count: picked.length,
     cigarettesWeek: sum((action) => action.impact.cigarettesWeek),

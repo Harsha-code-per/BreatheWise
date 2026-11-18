@@ -5,6 +5,9 @@
 import type { Action } from './action.js';
 import { allActions, type Analysis } from './analysis.js';
 
+/** A question that matches no topic gets the plan's first few actions. */
+const GENERAL_ACTIONS = 3;
+
 interface Topic {
   words: RegExp;
   ids: readonly string[];
@@ -45,7 +48,7 @@ export function engineAnswer(analysis: Analysis, question: string): string {
   const topic = TOPICS.find((candidate) => candidate.words.test(question));
   const matched = topic
     ? actions.filter((action) => topic.ids.includes(action.id))
-    : actions.slice(0, 3);
+    : actions.slice(0, GENERAL_ACTIONS);
   const lines = [
     `Right now the air in ${analysis.placeName} is ${analysis.band.label.toLowerCase()} (AQI ${Math.round(analysis.current.aqi)}).`,
     topic?.note ?? '',

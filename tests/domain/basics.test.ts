@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { aqiBand, levelRank } from '../../src/domain/aqi';
-import { BREATHING, cigarettes, inhaledDose, percentLess, round1 } from '../../src/domain/exposure';
+import { BREATHING, cigarettes, inhaledDose, percentLess } from '../../src/domain/exposure';
+import { round1 } from '../../src/domain/units';
 import { cadrFor, cfmToM3h, indoorPm25 } from '../../src/domain/indoor';
 import { dayOf, formatHour, hourOf } from '../../src/domain/time';
 

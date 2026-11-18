@@ -2,6 +2,17 @@
  * The contract every text-generation provider meets, so the cascade can try them in turn.
  */
 
+/** HTTP statuses the cascade reacts to. */
+export const HTTP_STATUS = {
+  clientError: 400,
+  tooManyRequests: 429,
+  serverError: 500,
+  badGateway: 502,
+} as const;
+
+/** Low temperature keeps advice consistent while still reading naturally. */
+export const TEMPERATURE = 0.4;
+
 /** One generation request. `schema` asks for JSON matching a JSON Schema when set. */
 export interface AiRequest {
   system: string;

@@ -3,7 +3,14 @@
  * Uses plain fetch, so it adds no dependency.
  */
 import { z } from 'zod';
-import { ProviderError, type AiRequest, type Provider } from './provider.js';
+import { MS_PER_SECOND } from '../../../src/domain/units.js';
+import {
+  HTTP_STATUS,
+  ProviderError,
+  TEMPERATURE,
+  type AiRequest,
+  type Provider,
+} from './provider.js';
 
 const completion = z.object({
   choices: z.array(z.object({ message: z.object({ content: z.string().nullable() }) })).min(1),
@@ -28,7 +35,7 @@ export function compatibleProvider(config: CompatibleConfig): Provider {
         body: JSON.stringify({
           model: config.model,
           max_tokens: request.maxOutputTokens,
-          temperature: 0.4,
+          temperature: TEMPERATURE,
           messages: [
             { role: 'system', content: request.system },
             { role: 'user', content: request.prompt },
@@ -38,10 +45,13 @@ export function compatibleProvider(config: CompatibleConfig): Provider {
       });
       if (!response.ok) {
         const retryAfter = Number(response.headers.get('retry-after'));
-        throw new ProviderError(response.status, retryAfter > 0 ? retryAfter * 1000 : null);
+        throw new ProviderError(
+          response.status,
+          retryAfter > 0 ? retryAfter * MS_PER_SECOND : null,
+        );
       }
       const text = completion.parse(await response.json()).choices[0]?.message.content?.trim();
-      if (!text) throw new ProviderError(502);
+      if (!text) throw new ProviderError(HTTP_STATUS.badGateway);
       return text;
     },
   };

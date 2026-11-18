@@ -6,6 +6,7 @@ import { NO_IMPACT, type Action, type PlanContext } from './action.js';
 import { commuteCost, commuteOptions, type CommuteCost } from './commute.js';
 import { percentLess } from './exposure.js';
 import type { CommuteMode, HeatingType } from './schemas.js';
+import { round1 } from './units.js';
 
 /** How many commute alternatives to offer. */
 const MAX_COMMUTE_OPTIONS = 2;
@@ -59,7 +60,7 @@ function commuteSwap(current: CommuteCost, option: CommuteCost): Action {
     impact: {
       ...NO_IMPACT,
       exposureCut: breathing,
-      co2KgWeek: Math.round((current.co2KgPerWeek - option.co2KgPerWeek) * 10) / 10,
+      co2KgWeek: round1(current.co2KgPerWeek - option.co2KgPerWeek),
     },
   };
 }

@@ -5,6 +5,11 @@ import { isTrapped } from '../domain/smog.js';
 import { formatHour, hourOf } from '../domain/time.js';
 import styles from './dashboard.module.css';
 
+/** Even the cleanest hour keeps a visible sliver of bar. */
+const MIN_BAR_PERCENT = 4;
+/** Hours are labelled every six, which fits a phone-width chart. */
+const LABEL_EVERY_HOURS = 6;
+
 /** Hours shown in the strip. */
 const HOURS_SHOWN = 24;
 
@@ -32,9 +37,11 @@ export function HourlyChart({
             key={hour.time}
             data-level={aqiBand(hour.aqi).level}
             data-trapped={isTrapped(hour)}
-            style={{ blockSize: `${String(Math.max(4, (hour.pm25 / peak) * 100))}%` }}
+            style={{ blockSize: `${String(Math.max(MIN_BAR_PERCENT, (hour.pm25 / peak) * 100))}%` }}
           >
-            {hourOf(hour.time) % 6 === 0 ? <span>{formatHour(hourOf(hour.time))}</span> : null}
+            {hourOf(hour.time) % LABEL_EVERY_HOURS === 0 ? (
+              <span>{formatHour(hourOf(hour.time))}</span>
+            ) : null}
           </li>
         ))}
       </ol>

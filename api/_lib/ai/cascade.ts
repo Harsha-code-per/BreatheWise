@@ -3,14 +3,16 @@
  * slow is put on cooldown so later requests skip it, and a daily budget keeps usage inside
  * free-tier quotas. When everything is exhausted it returns null and callers use the engine.
  */
-import { ProviderError, statusOf, type AiRequest, type Provider } from './provider.js';
+import { dayOf } from '../../../src/domain/time.js';
+import { HOUR_MS, MINUTE_MS, MS_PER_SECOND } from '../../../src/domain/units.js';
+import { HTTP_STATUS, ProviderError, statusOf, type AiRequest, type Provider } from './provider.js';
 
 /** Cooldown after a 429 without a Retry-After header. */
-const RATE_LIMIT_COOLDOWN_MS = 60_000;
+const RATE_LIMIT_COOLDOWN_MS = MINUTE_MS;
 /** Cooldown after a server error, timeout or network failure. Free-tier overload spikes pass quickly. */
-const TRANSIENT_COOLDOWN_MS = 10_000;
+const TRANSIENT_COOLDOWN_MS = 10 * MS_PER_SECOND;
 /** Cooldown when the request itself is rejected (bad key or unknown model), which will not heal soon. */
-const CONFIG_COOLDOWN_MS = 60 * 60_000;
+const CONFIG_COOLDOWN_MS = HOUR_MS;
 
 /** Tuning for one cascade: per-attempt timeout, total time for a request, and calls per day. */
 export interface CascadeOptions {
@@ -100,7 +102,7 @@ export class Cascade {
   }
 
   private spendBudget(): boolean {
-    const today = new Date(this.options.now()).toISOString().slice(0, 10);
+    const today = dayOf(new Date(this.options.now()).toISOString());
     if (today !== this.budgetDay) {
       this.budgetDay = today;
       this.callsToday = 0;
@@ -113,17 +115,19 @@ export class Cascade {
 
 /** True for server-side overload (5xx), which usually clears within a second. */
 function isBusy(error: unknown): boolean {
-  return (statusOf(error) ?? 0) >= 500;
+  return (statusOf(error) ?? 0) >= HTTP_STATUS.serverError;
 }
 
 /** How long to skip a provider after this failure. */
 export function cooldownFor(error: unknown): number {
   const status = statusOf(error);
-  if (status === 429) {
+  if (status === HTTP_STATUS.tooManyRequests) {
     return error instanceof ProviderError && error.retryAfterMs !== null
       ? error.retryAfterMs
       : RATE_LIMIT_COOLDOWN_MS;
   }
-  if (status !== null && status >= 400 && status < 500) return CONFIG_COOLDOWN_MS;
+  const clientError =
+    status !== null && status >= HTTP_STATUS.clientError && status < HTTP_STATUS.serverError;
+  if (clientError) return CONFIG_COOLDOWN_MS;
   return TRANSIENT_COOLDOWN_MS;
 }

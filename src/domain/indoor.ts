@@ -6,6 +6,11 @@
  */
 import type { CookingFuel } from './schemas.js';
 
+/** Purifier ratings are quoted to the nearest 10 m³/h. */
+const CADR_STEP = 10;
+/** One cubic foot per minute is 1.699 m³ per hour. */
+const M3H_PER_CFM = 1.699;
+
 /** Typical ceiling height used to turn floor area into room volume, metres. */
 const ROOM_HEIGHT_M = 2.7;
 
@@ -60,10 +65,11 @@ export function indoorPm25(input: IndoorInput): number {
 
 /** Clean-air delivery rate (m³/h) a purifier needs for the room, rounded to 10. */
 export function cadrFor(areaM2: number): number {
-  return Math.round((areaM2 * ROOM_HEIGHT_M * TARGET_CLEAN_ACH) / 10) * 10;
+  const needed = areaM2 * ROOM_HEIGHT_M * TARGET_CLEAN_ACH;
+  return Math.round(needed / CADR_STEP) * CADR_STEP;
 }
 
 /** Converts a purifier rating in cubic feet per minute to m³/h. */
 export function cfmToM3h(cfm: number): number {
-  return Math.round(cfm * 1.699);
+  return Math.round(cfm * M3H_PER_CFM);
 }

@@ -29,6 +29,10 @@ export const RANGES = {
 
 /** Most households fit; the form stops adding people here. */
 export const MAX_MEMBERS = 12;
+/** Place names are cut to this length wherever they come from. */
+export const PLACE_NAME_MAX = 80;
+/** A description shorter than this cannot say anything useful about a household. */
+export const INTAKE_TEXT_MIN = 3;
 
 const inRange = ({ min, max }: { min: number; max: number }) => z.number().min(min).max(max);
 
@@ -40,7 +44,7 @@ const purifierCadrSchema = inRange(RANGES.purifierCadr);
 const exerciseMinutesSchema = inRange(RANGES.exerciseMinutes).int();
 
 export const placeSchema = z.object({
-  name: z.string().trim().min(1).max(80),
+  name: z.string().trim().min(1).max(PLACE_NAME_MAX),
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
 });
@@ -139,7 +143,7 @@ export const locateRequestSchema = z.object({
 /** What Gemini may extract from a free-text description of the household; every field is optional. */
 export const intakeSchema = z
   .object({
-    city: z.string().trim().min(1).max(80),
+    city: z.string().trim().min(1).max(PLACE_NAME_MAX),
     // The AI may leave a name blank; the form fills it in from the relationship.
     members: z
       .array(
@@ -165,7 +169,9 @@ export const intakeSchema = z
 /** Ids of the actions a family chose to do. */
 export const choicesSchema = z.array(z.string().max(40)).max(40);
 
-export const intakeRequestSchema = z.object({ text: z.string().trim().min(3).max(600) });
+export const intakeRequestSchema = z.object({
+  text: z.string().trim().min(INTAKE_TEXT_MIN).max(600),
+});
 export const intakeResponseSchema = z.object({ intake: intakeSchema });
 
 export type Briefing = z.infer<typeof briefingSchema>;

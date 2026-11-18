@@ -4,15 +4,20 @@
  */
 import { listNames, NO_IMPACT, type Action, type PlanContext } from './action.js';
 import { levelRank } from './aqi.js';
-import { cigarettes, inhaledDose, percentLess, round1 } from './exposure.js';
+import { cigarettes, inhaledDose, percentLess } from './exposure.js';
 import { SMOG_PM25, trappedRuns } from './smog.js';
 import { formatHour, hourOf } from './time.js';
 import { windowRange, worstWindow, type AirWindow } from './windows.js';
+import { DAYS_PER_WEEK, MINUTES_PER_HOUR, round1 } from './units.js';
 
 /** Last hour at which an outdoor workout or airing may start. */
 const OUTDOOR_UNTIL = 20;
 /** Departure shifts smaller than this percentage are not worth suggesting. */
 const MIN_SHIFT_GAIN = 15;
+/** A workout window is at most this many hours long. */
+const MAX_WORKOUT_HOURS = 3;
+/** Sensitive family members are kept in for the dirtiest stretch of this many hours. */
+const SHELTER_HOURS = 3;
 /** Below this PM2.5 (the EPA "sensitive groups" breakpoint) the commute air is fine as it is. */
 const WORTH_SHIFTING_PM25 = 35.5;
 
@@ -37,11 +42,11 @@ function query(ctx: PlanContext, length: number) {
 function exercise(ctx: PlanContext): Timed | null {
   const { minutes, outdoors } = ctx.profile.exercise;
   if (minutes === 0 || !outdoors) return null;
-  const length = Math.min(3, Math.ceil(minutes / 60));
+  const length = Math.min(MAX_WORKOUT_HOURS, Math.ceil(minutes / MINUTES_PER_HOUR));
   const range = windowRange(ctx.dayHours, query(ctx, length));
   if (!range) return null;
   const { best, worst } = range;
-  const hours = minutes / 60;
+  const hours = minutes / MINUTES_PER_HOUR;
   const tooDirty = best.meanPm25 >= SMOG_PM25;
   return {
     id: 'exercise-window',
@@ -59,7 +64,7 @@ function exercise(ctx: PlanContext): Timed | null {
             inhaledDose(worst.meanPm25, hours, 'moderate'),
             inhaledDose(best.meanPm25, hours, 'moderate'),
           ),
-      cigarettesWeek: round1(cigarettes(worst.meanPm25 - best.meanPm25, hours) * 7),
+      cigarettesWeek: round1(cigarettes(worst.meanPm25 - best.meanPm25, hours) * DAYS_PER_WEEK),
     },
   };
 }
@@ -115,7 +120,7 @@ function windowsShut(ctx: PlanContext): Timed | null {
 }
 
 function shelter(ctx: PlanContext): Timed | null {
-  const worst = worstWindow(ctx.dayHours, query(ctx, 3));
+  const worst = worstWindow(ctx.dayHours, query(ctx, SHELTER_HOURS));
   if (ctx.sensitive.length === 0 || !worst || levelRank(ctx.band.level) < levelRank('sensitive')) {
     return null;
   }

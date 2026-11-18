@@ -51,6 +51,18 @@ export default tseslint.config(
     },
   },
   {
+    // Logic names its numbers. Exempt: zod schemas, whose bounds are the declaration itself,
+    // and the landing's drawing coordinates.
+    files: ['src/**/*.{ts,tsx}', 'api/**/*.ts'],
+    ignores: ['src/domain/schemas.ts', 'src/landing/**'],
+    rules: {
+      'no-magic-numbers': [
+        'error',
+        { ignore: [-1, 0, 1, 2, 10, 100], ignoreArrayIndexes: true, ignoreDefaultValues: true },
+      ],
+    },
+  },
+  {
     files: ['tests/**', 'e2e/**', 'scripts/**', '*.config.{js,ts}'],
     rules: {
       'max-lines': 'off',
