@@ -1,15 +1,7 @@
 import { type ReactElement, useState, type SubmitEvent } from 'react';
-import type { Language, Profile } from '../domain/schemas.js';
-import { api, RequestFailed } from '../lib/api.js';
+import type { Profile } from '../domain/schemas.js';
 import styles from './dashboard.module.css';
-
-interface Message {
-  id: number;
-  role: 'you' | 'breathewise';
-  text: string;
-  note?: string;
-  lang?: Language;
-}
+import { useConversation } from './useConversation.js';
 
 const SUGGESTIONS = [
   'When is it safe for the kids to play outside?',
@@ -19,33 +11,14 @@ const SUGGESTIONS = [
 
 /** A short conversation about the family's air, answered from their own forecast. */
 export function AskPanel({ profile }: { profile: Profile }): ReactElement {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, busy, ask } = useConversation(profile);
   const [question, setQuestion] = useState('');
-  const [busy, setBusy] = useState(false);
-
-  const ask = async (text: string) => {
-    const trimmed = text.trim();
-    if (trimmed.length < 2 || busy) return;
-    setBusy(true);
-    setQuestion('');
-    setMessages((list) => [...list, { id: list.length, role: 'you', text: trimmed }]);
-    const reply = await api.ask(profile, trimmed).then(
-      (response) => ({
-        text: response.answer,
-        ...(response.source === 'ai' ? { lang: profile.language } : {}),
-        note: response.source === 'ai' ? 'Answered by Gemini' : 'Answered by BreatheWise',
-      }),
-      (error: unknown) => ({
-        text: error instanceof RequestFailed ? error.message : 'Something went wrong.',
-        note: 'Not answered',
-      }),
-    );
-    setMessages((list) => [...list, { id: list.length, role: 'breathewise', ...reply }]);
-    setBusy(false);
+  const send = (text: string) => {
+    if (ask(text)) setQuestion('');
   };
   const submit = (event: SubmitEvent) => {
     event.preventDefault();
-    void ask(question);
+    send(question);
   };
 
   return (
@@ -68,7 +41,9 @@ export function AskPanel({ profile }: { profile: Profile }): ReactElement {
             key={suggestion}
             type="button"
             className="button button-quiet"
-            onClick={() => void ask(suggestion)}
+            onClick={() => {
+              send(suggestion);
+            }}
             disabled={busy}
           >
             {suggestion}

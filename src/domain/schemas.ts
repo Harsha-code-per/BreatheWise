@@ -18,7 +18,26 @@ export const COOKING_FUELS = ['electric', 'lpg', 'kerosene', 'biomass'] as const
 export const HEATING_TYPES = ['none', 'electric', 'gas', 'wood', 'coal'] as const;
 export const LANGUAGES = ['en', 'hi', 'bn', 'mr', 'ta'] as const;
 
+/** Bounds for the numbers a family enters; the schemas and the form inputs both read these. */
+export const RANGES = {
+  commuteKm: { min: 0, max: 200 },
+  commuteDays: { min: 0, max: 7 },
+  roomAreaM2: { min: 5, max: 500 },
+  purifierCadr: { min: 0, max: 3000 },
+  exerciseMinutes: { min: 0, max: 240 },
+} as const;
+
+/** Most households fit; the form stops adding people here. */
+export const MAX_MEMBERS = 12;
+
+const inRange = ({ min, max }: { min: number; max: number }) => z.number().min(min).max(max);
+
 const hourSchema = z.number().int().min(0).max(23);
+const commuteKmSchema = inRange(RANGES.commuteKm);
+const commuteDaysSchema = inRange(RANGES.commuteDays).int();
+const roomAreaSchema = inRange(RANGES.roomAreaM2);
+const purifierCadrSchema = inRange(RANGES.purifierCadr);
+const exerciseMinutesSchema = inRange(RANGES.exerciseMinutes).int();
 
 export const placeSchema = z.object({
   name: z.string().trim().min(1).max(80),
@@ -36,21 +55,21 @@ const memberSchema = z.object({
 
 export const profileSchema = z.object({
   place: placeSchema,
-  members: z.array(memberSchema).min(1).max(12),
+  members: z.array(memberSchema).min(1).max(MAX_MEMBERS),
   commute: z.object({
     mode: z.enum(COMMUTE_MODES),
-    km: z.number().min(0).max(200),
-    daysPerWeek: z.number().int().min(0).max(7),
+    km: commuteKmSchema,
+    daysPerWeek: commuteDaysSchema,
     departHour: hourSchema,
     returnHour: hourSchema,
   }),
   home: z.object({
-    areaM2: z.number().min(5).max(500),
-    purifierCadr: z.number().min(0).max(3000),
+    areaM2: roomAreaSchema,
+    purifierCadr: purifierCadrSchema,
     cooking: z.enum(COOKING_FUELS),
     heating: z.enum(HEATING_TYPES),
   }),
-  exercise: z.object({ minutes: z.number().int().min(0).max(240), outdoors: z.boolean() }),
+  exercise: z.object({ minutes: exerciseMinutesSchema, outdoors: z.boolean() }),
   language: z.enum(LANGUAGES),
 });
 
@@ -121,25 +140,24 @@ export const locateRequestSchema = z.object({
 export const intakeSchema = z
   .object({
     city: z.string().trim().min(1).max(80),
+    // The AI may leave a name blank; the form fills it in from the relationship.
     members: z
       .array(
         z.object({
           name: z.string().trim().max(40),
-          group: z.enum(MEMBER_GROUPS),
-          respiratory: z.boolean(),
-          outdoorWork: z.boolean(),
+          ...memberSchema.pick({ group: true, respiratory: true, outdoorWork: true }).shape,
         }),
       )
-      .max(12),
+      .max(MAX_MEMBERS),
     commuteMode: z.enum(COMMUTE_MODES),
-    commuteKm: z.number().min(0).max(200),
-    commuteDays: z.number().int().min(0).max(7),
+    commuteKm: commuteKmSchema,
+    commuteDays: commuteDaysSchema,
     departHour: hourSchema,
     cooking: z.enum(COOKING_FUELS),
     heating: z.enum(HEATING_TYPES),
-    roomAreaM2: z.number().min(5).max(500),
-    purifierCadr: z.number().min(0).max(3000),
-    exerciseMinutes: z.number().int().min(0).max(240),
+    roomAreaM2: roomAreaSchema,
+    purifierCadr: purifierCadrSchema,
+    exerciseMinutes: exerciseMinutesSchema,
     exercisesOutdoors: z.boolean(),
   })
   .partial();

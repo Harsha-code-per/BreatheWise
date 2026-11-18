@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import styles from './landing.module.css';
 
 /** Example hourly PM2.5 (µg/m³) for a winter smog day in Delhi, midnight to midnight. */
@@ -7,6 +7,12 @@ const EXAMPLE_DAY = [
   160, 165, 168,
 ];
 const CHART = { width: 480, height: 200, max: 200 };
+/** Shaded stretches of the example day, in hours from midnight. */
+const BANDS = [
+  { from: 0, hours: 9.5, kind: 'trapped' },
+  { from: 18, hours: 5, kind: 'trapped' },
+  { from: 13, hours: 2, kind: 'cleanest' },
+] as const;
 
 function pointsFor(values: readonly number[]): string {
   const step = CHART.width / (values.length - 1);
@@ -27,21 +33,16 @@ function DayChart() {
         aria-hidden="true"
         className={styles['chart']}
       >
-        <rect x="0" y="0" width={step * 9.5} height={CHART.height} className={styles['trapped']} />
-        <rect
-          x={step * 18}
-          y="0"
-          width={step * 5}
-          height={CHART.height}
-          className={styles['trapped']}
-        />
-        <rect
-          x={step * 13}
-          y="0"
-          width={step * 2}
-          height={CHART.height}
-          className={styles['cleanest']}
-        />
+        {BANDS.map((band) => (
+          <rect
+            key={band.from}
+            x={step * band.from}
+            y="0"
+            width={step * band.hours}
+            height={CHART.height}
+            className={styles[band.kind]}
+          />
+        ))}
         <polyline points={pointsFor(EXAMPLE_DAY)} className={styles['line']} />
         <text x="0" y={CHART.height + 20}>
           midnight
@@ -105,51 +106,51 @@ function RoomBars() {
   );
 }
 
+/** One scroll beat: a heading, its copy and an optional visual, inside the glass pane. */
+function Beat({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section className={styles['beat']} aria-labelledby={id}>
+      <div className={styles['pane']}>
+        <h2 id={id}>{title}</h2>
+        {children}
+      </div>
+    </section>
+  );
+}
+
 /** The four-part scroll story told while the smog lifts. */
 export function Story(): ReactElement {
   return (
     <>
-      <section className={styles['beat']} aria-labelledby="beat-timetable">
-        <div className={styles['pane']}>
-          <h2 id="beat-timetable">Smog keeps a timetable.</h2>
-          <p>
-            On still winter nights the air stops mixing and smoke settles over the city. By early
-            afternoon it lifts. BreatheWise reads the hourly forecast, and the height of that lid,
-            for wherever you live.
-          </p>
-          <DayChart />
-        </div>
-      </section>
-      <section className={styles['beat']} aria-labelledby="beat-day">
-        <div className={styles['pane']}>
-          <h2 id="beat-day">Move the day, not the city.</h2>
-          <p>
-            Shift the workout, the commute and the school run into the clean hours. Same day, a
-            fraction of the smoke.
-          </p>
-          <DayPlan />
-        </div>
-      </section>
-      <section className={styles['beat']} aria-labelledby="beat-room">
-        <div className={styles['pane']}>
-          <h2 id="beat-room">Clean the room you sleep in.</h2>
-          <p>
-            Families spend most of a smog day indoors. A purifier sized for the room, or a box fan
-            with filters taped to it, does more than any houseplant.
-          </p>
-          <RoomBars />
-        </div>
-      </section>
-      <section className={styles['beat']} aria-labelledby="beat-impact">
-        <div className={styles['pane']}>
-          <h2 id="beat-impact">See what every choice changes.</h2>
-          <p className={styles['impact']}>
-            One week of that plan spares each of you smoke equal to <strong>22 cigarettes</strong>.
-            Cycling the 8 km to work instead of driving saves <strong>13 kg of CO₂</strong>.
-          </p>
-          <p className="hint">Every number shows its formula and source in the app.</p>
-        </div>
-      </section>
+      <Beat id="beat-timetable" title="Smog keeps a timetable.">
+        <p>
+          On still winter nights the air stops mixing and smoke settles over the city. By early
+          afternoon it lifts. BreatheWise reads the hourly forecast, and the height of that lid, for
+          wherever you live.
+        </p>
+        <DayChart />
+      </Beat>
+      <Beat id="beat-day" title="Move the day, not the city.">
+        <p>
+          Shift the workout, the commute and the school run into the clean hours. Same day, a
+          fraction of the smoke.
+        </p>
+        <DayPlan />
+      </Beat>
+      <Beat id="beat-room" title="Clean the room you sleep in.">
+        <p>
+          Families spend most of a smog day indoors. A purifier sized for the room, or a box fan
+          with filters taped to it, does more than any houseplant.
+        </p>
+        <RoomBars />
+      </Beat>
+      <Beat id="beat-impact" title="See what every choice changes.">
+        <p className={styles['impact']}>
+          One week of that plan spares each of you smoke equal to <strong>22 cigarettes</strong>.
+          Cycling the 8 km to work instead of driving saves <strong>13 kg of CO₂</strong>.
+        </p>
+        <p className="hint">Every number shows its formula and source in the app.</p>
+      </Beat>
     </>
   );
 }

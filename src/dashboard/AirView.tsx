@@ -5,16 +5,12 @@ import { choiceImpact } from '../domain/choices.js';
 import type { AirSnapshot, Profile } from '../domain/schemas.js';
 import { api } from '../lib/api.js';
 import { useRemote } from '../lib/useRemote.js';
-import { ActionList } from './ActionList.js';
-import { AskPanel } from './AskPanel.js';
 import { BriefingCard } from './BriefingCard.js';
 import styles from './dashboard.module.css';
-import { HourlyChart } from './HourlyChart.js';
 import { ImpactPanel } from './ImpactPanel.js';
 import { Method } from './Method.js';
 import { NowPanel } from './NowPanel.js';
-import { SharePlan } from './SharePlan.js';
-import { Tabs } from './Tabs.js';
+import { PlanTabs } from './PlanTabs.js';
 import { usePlan } from './usePlan.js';
 import { useChoices } from './useChoices.js';
 
@@ -33,15 +29,6 @@ function Insights({ profile, air }: { profile: Profile; air: AirSnapshot }): Rea
       ),
     [plan],
   );
-  const list = (actions: typeof analysis.routine, empty: string) => (
-    <ActionList
-      actions={actions}
-      explanations={explanations}
-      empty={empty}
-      choices={choices}
-      language={profile.language}
-    />
-  );
 
   return (
     <div className={styles['insights']}>
@@ -56,44 +43,12 @@ function Insights({ profile, air }: { profile: Profile; air: AirSnapshot }): Rea
         retryingSoon={retryingSoon}
         language={profile.language}
       />
-      <Tabs
-        label="Your plan"
-        tabs={[
-          {
-            id: 'today',
-            label: 'Today',
-            panel: (
-              <>
-                <HourlyChart hours={air.hours} now={air.now} />
-                <h3 className={styles['planTitle']}>
-                  {analysis.planIsTomorrow ? 'Tomorrow’s plan' : 'Today’s plan'}
-                </h3>
-                {list(analysis.routine, 'No timing changes needed.')}
-              </>
-            ),
-          },
-          {
-            id: 'home',
-            label: 'At home',
-            panel: list(analysis.indoor, 'Your home is set up well.'),
-          },
-          {
-            id: 'switches',
-            label: 'Greener choices',
-            panel: list(analysis.switches, 'Your travel is already low-carbon.'),
-          },
-          {
-            id: 'community',
-            label: 'Neighbours',
-            panel: (
-              <>
-                {list(analysis.community, 'No community actions today.')}
-                <SharePlan placeName={analysis.placeName} actions={analysis.community} />
-              </>
-            ),
-          },
-          { id: 'ask', label: 'Ask', panel: <AskPanel profile={profile} /> },
-        ]}
+      <PlanTabs
+        profile={profile}
+        air={air}
+        analysis={analysis}
+        explanations={explanations}
+        choices={choices}
       />
       <Method />
     </div>

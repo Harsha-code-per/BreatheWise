@@ -16,7 +16,7 @@ export default tseslint.config(
       parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
     },
     rules: {
-      complexity: ['error', 10],
+      complexity: ['error', 8],
       'max-depth': ['error', 3],
       'max-params': ['error', 3],
       'max-lines': ['error', { max: 200, skipBlankLines: true, skipComments: true }],

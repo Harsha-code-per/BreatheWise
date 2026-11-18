@@ -37,10 +37,8 @@ export function createHandler<Schema extends z.ZodType, Result>(
   };
 }
 
-async function readBody(
-  request: Request,
-  route: RouteOptions<z.ZodType, unknown>,
-): Promise<unknown> {
+/** Refuses a request on its headers alone, before any of the body is read. */
+function checkHeaders(request: Request): void {
   if (request.method !== 'POST') throw new ApiError('METHOD_NOT_ALLOWED');
   if (!isSameOrigin(request)) throw new ApiError('FORBIDDEN_ORIGIN');
   if (!request.headers.get('content-type')?.startsWith('application/json')) {
@@ -49,6 +47,13 @@ async function readBody(
   if (Number(request.headers.get('content-length') ?? 0) > MAX_BODY_BYTES) {
     throw new ApiError('PAYLOAD_TOO_LARGE');
   }
+}
+
+async function readBody(
+  request: Request,
+  route: RouteOptions<z.ZodType, unknown>,
+): Promise<unknown> {
+  checkHeaders(request);
   const decision = limiter.check(`${route.name}:${clientKey(request)}`, route.rate);
   if (!decision.allowed) throw new ApiError('RATE_LIMITED', decision.retryAfterSeconds);
   const text = await readLimited(request);

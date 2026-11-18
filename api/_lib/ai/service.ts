@@ -51,42 +51,32 @@ export function createAiService(generator: TextGenerator): AiService {
       const analysis = analyse(profile, air);
       const facts = factsFor(analysis, profile);
       const ids = new Set(allActions(analysis).map((action) => action.id));
-      try {
-        const briefing = await briefings.getOrLoad(
-          keyOf(profile.language, facts),
-          AI_TTL_MS,
-          async () => {
+      const { value, source } = await aiOrEngine(
+        () =>
+          briefings.getOrLoad(keyOf(profile.language, facts), AI_TTL_MS, async () => {
             const result = await generator.generate(briefingRequest(facts, profile.language));
-            return validBriefing(result?.text, facts, ids) ?? Promise.reject(new NoAiResult());
-          },
-        );
-        return { briefing, source: 'ai' };
-      } catch {
-        return { briefing: engineBriefing(analysis), source: 'engine' };
-      }
+            return orNoResult(validBriefing(result?.text, facts, ids));
+          }),
+        () => engineBriefing(analysis),
+      );
+      return { briefing: value, source };
     },
 
     async answer(profile, air, question) {
       const analysis = analyse(profile, air);
       const facts = factsFor(analysis, profile);
-      try {
-        const answer = await answers.getOrLoad(
-          keyOf(profile.language, facts, question),
-          AI_TTL_MS,
-          async () => {
+      const { value, source } = await aiOrEngine(
+        () =>
+          answers.getOrLoad(keyOf(profile.language, facts, question), AI_TTL_MS, async () => {
             const result = await generator.generate(
               questionRequest(facts, question, profile.language),
             );
             const text = result?.text;
-            return text && grounded(text, `${facts} ${question}`)
-              ? text
-              : Promise.reject(new NoAiResult());
-          },
-        );
-        return { answer, source: 'ai' };
-      } catch {
-        return { answer: engineAnswer(analysis, question), source: 'engine' };
-      }
+            return orNoResult(text && grounded(text, `${facts} ${question}`) ? text : null);
+          }),
+        () => engineAnswer(analysis, question),
+      );
+      return { answer: value, source };
     },
 
     async intake(text) {
@@ -96,6 +86,23 @@ export function createAiService(generator: TextGenerator): AiService {
       return parsed.data;
     },
   };
+}
+
+/** Uses the AI result when there is one; any failure falls back to the engine's own wording. */
+async function aiOrEngine<T>(
+  ai: () => Promise<T>,
+  engine: () => T,
+): Promise<{ value: T; source: 'ai' | 'engine' }> {
+  try {
+    return { value: await ai(), source: 'ai' };
+  } catch {
+    return { value: engine(), source: 'engine' };
+  }
+}
+
+/** Rejects inside a cache loader so that a missing AI result is never cached. */
+function orNoResult<T>(value: T | null): Promise<T> | T {
+  return value ?? Promise.reject(new NoAiResult());
 }
 
 function keyOf(...parts: readonly string[]): string {

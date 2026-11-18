@@ -1,12 +1,10 @@
 import type { ReactElement } from 'react';
-import { MEMBER_GROUPS, type Member } from '../domain/schemas.js';
+import { MAX_MEMBERS, MEMBER_GROUPS, type Member } from '../domain/schemas.js';
 import { newMember } from './draft.js';
+import { CheckField, SelectField } from './fields.js';
 import { GROUP_LABELS } from './labels.js';
-import { nextMemberId, pickOption } from './options.js';
+import { nextMemberId } from './options.js';
 import styles from './setup.module.css';
-
-/** Most families this size or larger share a home; the schema allows up to 12. */
-const MAX_MEMBERS = 12;
 
 /** Who lives at home, and who needs extra care on smoggy days. */
 export function MembersField({
@@ -40,41 +38,29 @@ export function MembersField({
               }}
             />
           </label>
-          <label className="field">
-            Age group
-            <select
-              value={member.group}
-              onChange={(event) => {
-                update(index, { group: pickOption(MEMBER_GROUPS, event.target.value) });
-              }}
-            >
-              {MEMBER_GROUPS.map((group) => (
-                <option key={group} value={group}>
-                  {GROUP_LABELS[group]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className={styles['check']}>
-            <input
-              type="checkbox"
-              checked={member.respiratory}
-              onChange={(event) => {
-                update(index, { respiratory: event.target.checked });
-              }}
-            />
-            Asthma, lung or heart condition
-          </label>
-          <label className={styles['check']}>
-            <input
-              type="checkbox"
-              checked={member.outdoorWork}
-              onChange={(event) => {
-                update(index, { outdoorWork: event.target.checked });
-              }}
-            />
-            Works outdoors
-          </label>
+          <SelectField
+            label="Age group"
+            value={member.group}
+            options={MEMBER_GROUPS}
+            names={GROUP_LABELS}
+            onChange={(group) => {
+              update(index, { group });
+            }}
+          />
+          <CheckField
+            label="Asthma, lung or heart condition"
+            value={member.respiratory}
+            onChange={(respiratory) => {
+              update(index, { respiratory });
+            }}
+          />
+          <CheckField
+            label="Works outdoors"
+            value={member.outdoorWork}
+            onChange={(outdoorWork) => {
+              update(index, { outdoorWork });
+            }}
+          />
           {members.length > 1 ? (
             <button
               type="button"
